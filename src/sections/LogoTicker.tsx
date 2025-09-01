@@ -494,10 +494,10 @@ export default function LogoTicker() {
         {/* Section Header */}
         <div className="text-center mb-12">
           <p className="text-white/60 text-sm font-medium tracking-wide uppercase mb-4">
-            Powered by industry-leading technologies
+            My Technology Stack
           </p>
           <h2 className="text-2xl md:text-3xl font-medium text-white">
-            Built with the tools you love
+            Tools & Technologies I Work With
           </h2>
         </div>
 
@@ -521,7 +521,7 @@ export default function LogoTicker() {
         {/* Bottom text */}
         <div className="text-center mt-12">
           <p className="text-white/40 text-sm">
-            Join thousands of developers building with modern tools
+            Constantly learning and adapting to new technologies
           </p>
         </div>
       </div>

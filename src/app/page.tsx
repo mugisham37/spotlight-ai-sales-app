@@ -1,7 +1,7 @@
 import Navbar from "@/sections/Navbar";
 import Hero from "@/sections/Hero";
 import LogoTicker from "@/sections/LogoTicker";
-import Introduction from "@/sections/introduction";
+import About from "@/sections/introduction";
 
 export default function Home() {
   return (
@@ -9,7 +9,7 @@ export default function Home() {
       <Navbar />
       <Hero />
       <LogoTicker />
-      <Introduction />
+      <About />
     </div>
   );
 }

@@ -8,13 +8,13 @@ import Tag from "@/components/Tag";
 gsap.registerPlugin(ScrollTrigger);
 
 const textSegments = {
-  primary: "Your creative process deserves better.",
+  primary: "Code is my canvas, innovation is my art.",
   problem:
-    "You're racing to create exceptional work, but traditional design tools slow you down with unnecessary complexity and steep learning curves.",
-  solution: "That's why we built Layers.",
+    "With over 5 years of experience in full-stack development, I specialize in creating scalable web applications using modern technologies like React, Next.js, and TypeScript.",
+  solution: "Let's build something amazing together.",
 };
 
-export default function Introduction() {
+export default function About() {
   const sectionRef = useRef<HTMLElement>(null);
   const primaryRef = useRef<HTMLHeadingElement>(null);
   const problemRef = useRef<HTMLParagraphElement>(null);
@@ -61,7 +61,7 @@ export default function Introduction() {
             trigger: sectionRef.current,
             start: "top 60%",
             once: true,
-          }, 
+          },
         }
       );
 
@@ -113,7 +113,7 @@ export default function Introduction() {
     <section
       ref={sectionRef}
       className="relative py-32 lg:py-48 overflow-hidden min-h-screen"
-      aria-labelledby="introduction-heading"
+      aria-labelledby="about-heading"
     >
       {/* Background gradient */}
       <div className="absolute inset-0 bg-gradient-to-b from-transparent via-lime-400/5 to-transparent pointer-events-none" />
@@ -121,12 +121,12 @@ export default function Introduction() {
       <div className="container mx-auto px-4 max-w-6xl">
         {/* Tag */}
         <div className="flex justify-center mb-16">
-          <Tag>Introducing Layers</Tag>
+          <Tag>About Me</Tag>
         </div>
 
         {/* All text is always in DOM - no conditional rendering */}
         <div
-          id="introduction-heading"
+          id="about-heading"
           className="text-center space-y-8"
           style={{
             lineHeight: "1.1",

@@ -31,20 +31,20 @@ const TitleComponent = ({
 
 // Hero content data for the pointer
 const heroContent = {
-  author: "Design Tools Expert",
+  author: "Full Stack Developer",
   date: "2024",
-  title: "Impactful design, created effortlessly",
+  title: "Building digital experiences that matter",
   description:
-    "Design tools shouldn't slow you down. Layers combines powerful features with an intuitive interface in your creative flow",
+    "Passionate developer crafting modern web applications with cutting-edge technologies and clean, scalable code",
   authorAvatar: "/assets/images/head-shot.jpg",
 };
 
 export default function Hero() {
   const placeholders = [
     "Enter your email",
-    "Join thousands of designers",
-    "Get early access",
-    "Start creating today",
+    "Let's work together",
+    "Get in touch",
+    "Start a conversation",
   ];
 
   const handleEmailSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -116,7 +116,7 @@ export default function Hero() {
           <div className="flex flex-col items-center text-center max-w-4xl mx-auto">
             {/* Badge */}
             <div className="inline-flex py-1 px-3 bg-gradient-to-r from-purple-400 to-pink-400 rounded-full text-neutral-950 font-semibold mb-8">
-              $7.5M seed round raised
+              Available for new projects
             </div>
 
             {/* Main Headline */}
@@ -152,11 +152,11 @@ export default function Hero() {
                 onClick={async () => {
                   await new Promise((resolve) => setTimeout(resolve, 1500));
                 }}
-                loadingText="Signing up..."
-                successText="Welcome!"
+                loadingText="Sending..."
+                successText="Message sent!"
                 errorText="Try again"
               >
-                Sign Up
+                Get In Touch
               </Button>
             </div>
           </div>
