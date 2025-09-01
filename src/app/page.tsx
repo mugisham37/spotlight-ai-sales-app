@@ -10,13 +10,19 @@ export default function Home() {
   return (
     <div className="min-h-screen relative">
       <Navbar />
-      <Hero />
+      <section id="home">
+        <Hero />
+      </section>
       <LogoTicker />
-      <About />
-      <Projects />
-      <div id="experience">
+      <section id="about" className="scroll-mt-20">
+        <About />
+      </section>
+      <section id="projects" className="scroll-mt-20">
+        <Projects />
+      </section>
+      <section id="experience" className="scroll-mt-20">
         <Experience />
-      </div>
+      </section>
       <Footer />
     </div>
   );

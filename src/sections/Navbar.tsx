@@ -126,27 +126,29 @@ export default function Navbar() {
   // Enhanced logo component
   const Logo = ({ isCompact = false }: { isCompact?: boolean }) => {
     return (
-      <motion.div
-        className={cn(
-          "bg-gradient-to-br from-lime-400 to-lime-500 rounded-lg flex items-center justify-center shadow-lg shadow-lime-400/25 cursor-pointer group",
-          isCompact ? "h-8 w-10" : "h-9 md:h-10 w-12"
-        )}
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
-        animate={{
-          scale: isCompact ? 0.9 : 1,
-        }}
-        transition={{ duration: 0.3 }}
-      >
-        <span
+      <a href="#home" className="block">
+        <motion.div
           className={cn(
-            "text-black font-bold transition-all duration-200 group-hover:scale-110",
-            isCompact ? "text-base" : "text-lg md:text-xl"
+            "bg-gradient-to-br from-lime-400 to-lime-500 rounded-lg flex items-center justify-center shadow-lg shadow-lime-400/25 cursor-pointer group",
+            isCompact ? "h-8 w-10" : "h-9 md:h-10 w-12"
           )}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          animate={{
+            scale: isCompact ? 0.9 : 1,
+          }}
+          transition={{ duration: 0.3 }}
         >
-          L
-        </span>
-      </motion.div>
+          <span
+            className={cn(
+              "text-black font-bold transition-all duration-200 group-hover:scale-110",
+              isCompact ? "text-base" : "text-lg md:text-xl"
+            )}
+          >
+            L
+          </span>
+        </motion.div>
+      </a>
     );
   };
 
