@@ -24,12 +24,12 @@ export default function Hero() {
   };
 
   return (
-    <section className="relative pt-32 pb-24 min-h-screen flex items-center overflow-hidden">
+    <section className="relative pt-32 pb-24 min-h-screen flex items-center overflow-hidde overflow-x-clip">
       {/* Background Ripple Effect */}
       <BackgroundRippleEffect cellSize={32} />
 
       <div className="container mx-auto relative z-20">
-        <div>
+        <div className="absolute -left-32 top -1">
         <PixelatedCompare
                 src="/assets/images/head-shot.jpg"
                 width={420}
@@ -49,9 +49,8 @@ export default function Hero() {
               />
 
         </div>
-        <div>
+        <div className="absolute -right-74 -top-1">
           < CodeBlockDemo />
-
         </div>
         <div className="flex flex-col items-center text-center max-w-4xl mx-auto">
           {/* Badge */}
