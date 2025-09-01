@@ -3,7 +3,8 @@ import Hero from "@/sections/Hero";
 import LogoTicker from "@/sections/LogoTicker";
 import About from "@/sections/About";
 import Projects from "@/sections/Projects";
-
+import Experience from "@/sections/Experience";
+import Footer from "@/sections/Footer";
 
 export default function Home() {
   return (
@@ -12,7 +13,11 @@ export default function Home() {
       <Hero />
       <LogoTicker />
       <About />
-      <Projects/>
+      <Projects />
+      <div id="experience">
+        <Experience />
+      </div>
+      <Footer />
     </div>
   );
 }

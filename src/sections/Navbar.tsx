@@ -50,8 +50,8 @@ const navLinks = [
     ),
   },
   {
-    label: "Contact",
-    href: "#contact",
+    label: "Experience",
+    href: "#experience",
     icon: (
       <svg
         className="w-4 h-4"
@@ -63,7 +63,7 @@ const navLinks = [
           strokeLinecap="round"
           strokeLinejoin="round"
           strokeWidth={2}
-          d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+          d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2-2v2m8 0H8m8 0v2a2 2 0 01-2 2H10a2 2 0 01-2-2V6m8 0H8m0 0v.01M8 6v6.01"
         />
       </svg>
     ),
