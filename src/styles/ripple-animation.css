@@ -1,0 +1,63 @@
+@keyframes cell-ripple {
+  0% {
+    opacity: 0.4;
+    transform: scale(1);
+    background-color: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.2);
+    box-shadow: none;
+  }
+  20% {
+    opacity: 0.8;
+    transform: scale(1.1);
+    background-color: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.4);
+    box-shadow: 0 0 30px rgba(255, 255, 255, 0.3);
+  }
+  40% {
+    opacity: 1;
+    transform: scale(1.2);
+    background-color: rgba(255, 255, 255, 0.25);
+    border-color: rgba(255, 255, 255, 0.6);
+    box-shadow: 0 0 50px rgba(255, 255, 255, 0.5),
+      inset 0 0 20px rgba(255, 255, 255, 0.2);
+  }
+  60% {
+    opacity: 0.9;
+    transform: scale(1.15);
+    background-color: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.5);
+    box-shadow: 0 0 40px rgba(255, 255, 255, 0.4);
+  }
+  80% {
+    opacity: 0.6;
+    transform: scale(1.05);
+    background-color: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.3);
+    box-shadow: 0 0 25px rgba(255, 255, 255, 0.2);
+  }
+  100% {
+    opacity: 0.4;
+    transform: scale(1);
+    background-color: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.2);
+    box-shadow: none;
+  }
+}
+
+.animate-cell-ripple {
+  animation: cell-ripple var(--duration, 500ms)
+    cubic-bezier(0.25, 0.46, 0.45, 0.94) var(--delay, 0ms);
+  z-index: 15 !important;
+}
+
+/* Remove conflicting hover animation */
+.cell {
+  transition: all 0.2s ease-out;
+}
+
+/* Debug styles - remove these once working */
+.cell {
+  /* Temporary: make cells more visible for testing */
+  min-width: 32px;
+  min-height: 32px;
+}

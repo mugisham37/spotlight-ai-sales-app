@@ -2,6 +2,9 @@
 
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { BackgroundRippleEffect } from "@/components/ui/background-ripple-effect";
+import { PixelatedCompare } from "@/components/pixelated-compare";
+import { CodeBlockDemo } from "@/components/code-block";
 
 export default function Hero() {
   const placeholders = [
@@ -21,8 +24,35 @@ export default function Hero() {
   };
 
   return (
-    <section className="pt-32 pb-24 min-h-screen flex items-center">
-      <div className="container mx-auto">
+    <section className="relative pt-32 pb-24 min-h-screen flex items-center overflow-hidden">
+      {/* Background Ripple Effect */}
+      <BackgroundRippleEffect cellSize={32} />
+
+      <div className="container mx-auto relative z-20">
+        <div>
+        <PixelatedCompare
+                src="/assets/images/head-shot.jpg"
+                width={420}
+                height={520}
+                cellSize={4}
+                dotScale={0.85}
+                shape="square"
+                backgroundColor="#0a0a0a"
+                dropoutStrength={0.35}
+                sampleAverage={true}
+                tintColor="#3b82f6"
+                tintStrength={0.08}
+                objectFit="cover"
+                slideMode="hover"
+                showHandlebar={true}
+                className="rounded-lg shadow-inner"
+              />
+
+        </div>
+        <div>
+          < CodeBlockDemo />
+
+        </div>
         <div className="flex flex-col items-center text-center max-w-4xl mx-auto">
           {/* Badge */}
           <div className="inline-flex py-1 px-3 bg-gradient-to-r from-purple-400 to-pink-400 rounded-full text-neutral-950 font-semibold mb-8">
