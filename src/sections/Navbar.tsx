@@ -8,6 +8,7 @@ import {
   useMotionValueEvent,
 } from "framer-motion";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
 const navLinks = [
@@ -93,6 +94,7 @@ export default function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isFloating, setIsFloating] = useState(false);
   const [activeSection, setActiveSection] = useState("home");
+  const [showSearch, setShowSearch] = useState(false);
 
   const { scrollYProgress } = useScroll();
 
@@ -284,13 +286,90 @@ export default function Navbar() {
                 </nav>
               </div>
 
-              {/* Action Buttons & Mobile Menu */}
+              {/* Search & Action Buttons */}
               <div
                 className={cn(
                   "flex items-center",
-                  isFloating ? "gap-3" : "justify-end gap-4"
+                  isFloating ? "gap-2" : "justify-end gap-4"
                 )}
               >
+                {/* Enhanced Search */}
+                <AnimatePresence>
+                  {showSearch && (
+                    <motion.div
+                      initial={{ opacity: 0, width: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, width: "auto", scale: 1 }}
+                      exit={{ opacity: 0, width: 0, scale: 0.8 }}
+                      transition={{ duration: 0.3, ease: "easeInOut" }}
+                      className={cn(
+                        "overflow-hidden",
+                        isFloating ? "max-w-[200px]" : "max-w-[300px]"
+                      )}
+                    >
+                      <Input
+                        type="text"
+                        placeholders={[
+                          "Search features...",
+                          "Find integrations...",
+                          "Explore docs...",
+                          "Quick search...",
+                        ]}
+                        suggestions={[
+                          "Design tools",
+                          "Collaboration",
+                          "Templates",
+                          "Integrations",
+                          "API docs",
+                          "Tutorials",
+                        ]}
+                        className={cn(
+                          "bg-white/10 border-white/20 text-white placeholder:text-white/60",
+                          isFloating ? "h-8 text-sm" : "h-10"
+                        )}
+                        animationDuration={2500}
+                        onChange={(e) => console.log("Search:", e.target.value)}
+                        onFormSubmit={(e) => {
+                          e.preventDefault();
+                          console.log("Search submitted");
+                        }}
+                      />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* Search Toggle Button */}
+                <motion.button
+                  onClick={() => setShowSearch(!showSearch)}
+                  className={cn(
+                    "p-2 text-white/80 hover:text-lime-400 transition-all duration-200 rounded-lg hover:bg-white/10 group",
+                    isFloating ? "hidden sm:block" : "hidden md:block"
+                  )}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <motion.svg
+                    animate={{
+                      rotate: showSearch ? 90 : 0,
+                      scale: showSearch ? 1.1 : 1,
+                    }}
+                    transition={{ duration: 0.2 }}
+                    className={cn(
+                      "transition-colors duration-200",
+                      isFloating ? "w-4 h-4" : "w-5 h-5"
+                    )}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                    />
+                  </motion.svg>
+                </motion.button>
+
                 {/* Mobile Menu Button */}
                 <motion.button
                   onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -308,8 +387,8 @@ export default function Navbar() {
                     }}
                     transition={{ duration: 0.2 }}
                     xmlns="http://www.w3.org/2000/svg"
-                    width="24"
-                    height="24"
+                    width={isFloating ? "20" : "24"}
+                    height={isFloating ? "20" : "24"}
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
@@ -358,25 +437,37 @@ export default function Navbar() {
                   className="hidden lg:flex items-center gap-3"
                 >
                   <Button
-                    variant="secondary-glow"
-                    size={isFloating ? "sm" : "xl"}
+                    variant="enhanced-ghost"
+                    size={isFloating ? "sm" : "lg"}
                     className={cn(
-                      "relative overflow-hidden group",
-                      isFloating && "text-xs"
+                      "relative overflow-hidden group transition-all duration-300",
+                      isFloating && "text-xs px-4"
                     )}
+                    onClick={async () => {
+                      // Simulate login process
+                      await new Promise((resolve) => setTimeout(resolve, 1000));
+                    }}
+                    loadingText="Logging in..."
+                    successText="Welcome!"
                   >
                     <span className="relative z-10 transition-transform duration-200 group-hover:scale-105">
                       Log In
                     </span>
                   </Button>
                   <Button
-                    variant="primary-glow"
-                    size={isFloating ? "sm" : "xl"}
+                    variant="enhanced-glow"
+                    size={isFloating ? "sm" : "lg"}
                     effect="glow"
                     className={cn(
-                      "relative overflow-hidden group",
-                      isFloating && "text-xs"
+                      "relative overflow-hidden group transition-all duration-300 bg-lime-400 text-neutral-950 border-lime-400 shadow-lime-400/25 hover:bg-lime-500 hover:border-lime-500 hover:shadow-lime-500/30 focus-visible:ring-lime-400/50",
+                      isFloating && "text-xs px-4"
                     )}
+                    onClick={async () => {
+                      // Simulate signup process
+                      await new Promise((resolve) => setTimeout(resolve, 1500));
+                    }}
+                    loadingText="Creating account..."
+                    successText="Account created!"
                   >
                     <span className="relative z-10 transition-transform duration-200 group-hover:scale-105">
                       Sign Up
@@ -402,6 +493,42 @@ export default function Navbar() {
                     animate={{ scale: 1 }}
                     exit={{ scale: 0.95 }}
                   >
+                    {/* Mobile Search */}
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.3 }}
+                      className="mb-6"
+                    >
+                      <Input
+                        type="text"
+                        placeholders={[
+                          "Search anything...",
+                          "Find features...",
+                          "Explore docs...",
+                          "Quick search...",
+                        ]}
+                        suggestions={[
+                          "Design tools",
+                          "Collaboration",
+                          "Templates",
+                          "Integrations",
+                          "API documentation",
+                          "Video tutorials",
+                          "Community",
+                        ]}
+                        className="bg-white/10 border-white/20 text-white placeholder:text-white/60 h-12"
+                        animationDuration={2000}
+                        onChange={(e) =>
+                          console.log("Mobile search:", e.target.value)
+                        }
+                        onFormSubmit={(e) => {
+                          e.preventDefault();
+                          console.log("Mobile search submitted");
+                        }}
+                      />
+                    </motion.div>
+
                     {/* Mobile Navigation */}
                     <nav className="space-y-2">
                       {navLinks.map((link, index) => (
@@ -442,17 +569,31 @@ export default function Navbar() {
                       transition={{ delay: 0.2 }}
                     >
                       <Button
-                        variant="secondary-glow"
+                        variant="enhanced-ghost"
                         size="lg"
                         className="w-full"
+                        onClick={async () => {
+                          await new Promise((resolve) =>
+                            setTimeout(resolve, 1000)
+                          );
+                        }}
+                        loadingText="Logging in..."
+                        successText="Welcome!"
                       >
                         Log In
                       </Button>
                       <Button
-                        variant="primary-glow"
+                        variant="enhanced-glow"
                         size="lg"
                         effect="glow"
-                        className="w-full"
+                        className="w-full bg-lime-400 text-neutral-950 border-lime-400 shadow-lime-400/25 hover:bg-lime-500 hover:border-lime-500 hover:shadow-lime-500/30 focus-visible:ring-lime-400/50"
+                        onClick={async () => {
+                          await new Promise((resolve) =>
+                            setTimeout(resolve, 1500)
+                          );
+                        }}
+                        loadingText="Creating account..."
+                        successText="Account created!"
                       >
                         Sign Up
                       </Button>

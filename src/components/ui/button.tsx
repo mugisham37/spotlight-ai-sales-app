@@ -66,37 +66,38 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          "bg-primary text-primary-foreground shadow-xs hover:bg-primary/90 rounded-md",
+          "bg-primary text-primary-foreground shadow-xs hover:bg-primary/90",
         destructive:
-          "bg-destructive text-white shadow-xs hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60 rounded-md",
+          "bg-destructive text-destructive-foreground shadow-xs hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40",
         outline:
-          "border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50 rounded-md",
+          "border border-input bg-background shadow-xs hover:bg-accent hover:text-accent-foreground",
         secondary:
-          "bg-secondary text-secondary-foreground shadow-xs hover:bg-secondary/80 rounded-md",
-        ghost:
-          "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50 rounded-md",
-        link: "text-primary underline-offset-4 hover:underline rounded-md",
-        // Enhanced neon variants with moving border effects
-        primary:
-          "bg-lime-400 text-neutral-950 border border-lime-400 shadow-lg shadow-lime-400/25 hover:bg-lime-500 hover:border-lime-500 hover:shadow-lime-500/30 focus-visible:ring-lime-400/50 rounded-full transition-all duration-300 hover:scale-105",
-        "primary-glow":
-          "bg-gradient-to-r from-lime-400 to-lime-500 text-neutral-950 border-0 shadow-lg shadow-lime-400/40 hover:shadow-lime-400/60 hover:from-lime-500 hover:to-lime-600 focus-visible:ring-lime-400/50 rounded-full transition-all duration-300 hover:scale-105 animate-pulse",
-        "primary-border":
-          "bg-lime-400/10 text-lime-400 border-2 border-lime-400 shadow-lg shadow-lime-400/20 hover:bg-lime-400/20 hover:text-lime-300 hover:border-lime-300 hover:shadow-lime-300/30 focus-visible:ring-lime-400/50 rounded-full transition-all duration-300 backdrop-blur-sm",
-        "secondary-custom":
-          "border border-white/50 text-white bg-white/5 hover:bg-white/10 hover:border-white/70 focus-visible:ring-white/50 rounded-full transition-all duration-300 backdrop-blur-sm hover:scale-105",
-        "secondary-glow":
-          "border border-white/30 text-white bg-gradient-to-r from-white/5 to-white/10 hover:from-white/10 hover:to-white/15 hover:border-white/50 focus-visible:ring-white/50 rounded-full transition-all duration-300 backdrop-blur-md shadow-lg shadow-white/10",
+          "bg-secondary text-secondary-foreground shadow-xs hover:bg-secondary/80",
+        ghost: "hover:bg-accent hover:text-accent-foreground",
+        link: "text-primary underline-offset-4 hover:underline",
+        // Enhanced variants - now flexible with CSS variables
+        enhanced:
+          "bg-primary text-primary-foreground border border-primary shadow-lg shadow-primary/25 hover:bg-primary/90 hover:shadow-primary/30 focus-visible:ring-primary/50 transition-all duration-300 hover:scale-105",
+        "enhanced-glow":
+          "bg-gradient-to-r from-primary to-primary/80 text-primary-foreground border-0 shadow-lg shadow-primary/40 hover:shadow-primary/60 focus-visible:ring-primary/50 transition-all duration-300 hover:scale-105",
+        "enhanced-outline":
+          "bg-primary/10 text-primary border-2 border-primary shadow-lg shadow-primary/20 hover:bg-primary/20 hover:border-primary/80 hover:shadow-primary/30 focus-visible:ring-primary/50 transition-all duration-300 backdrop-blur-sm",
+        "enhanced-ghost":
+          "border border-border/50 text-foreground bg-background/50 hover:bg-background/80 hover:border-border/70 focus-visible:ring-ring/50 transition-all duration-300 backdrop-blur-sm hover:scale-105",
+        "enhanced-gradient":
+          "border border-border/30 text-foreground bg-gradient-to-r from-background/50 to-muted/50 hover:from-background/80 hover:to-muted/80 hover:border-border/50 focus-visible:ring-ring/50 transition-all duration-300 backdrop-blur-md shadow-lg shadow-foreground/10",
       },
       size: {
         default: "h-9 px-4 py-2 has-[>svg]:px-3",
         sm: "h-8 gap-1.5 px-3 has-[>svg]:px-2.5",
         lg: "h-10 px-6 has-[>svg]:px-4",
         xl: "h-12 px-6 has-[>svg]:px-4",
+        "2xl": "h-14 px-8 has-[>svg]:px-6 text-base",
         icon: "size-9",
         "icon-sm": "size-8",
         "icon-lg": "size-10",
         "icon-xl": "size-12",
+        "icon-2xl": "size-14",
       },
       rounded: {
         default: "rounded-md",
@@ -104,13 +105,19 @@ const buttonVariants = cva(
         none: "rounded-none",
         sm: "rounded-sm",
         lg: "rounded-lg",
+        xl: "rounded-xl",
+        "2xl": "rounded-2xl",
       },
       effect: {
         none: "",
         glow: "animate-pulse",
-        "moving-border":
-          "before:absolute before:inset-0 before:rounded-full before:p-[2px] before:bg-gradient-to-r before:from-lime-400 before:via-lime-500 before:to-lime-400 before:animate-spin before:duration-[3s] before:content-[''] after:absolute after:inset-[2px] after:rounded-full after:bg-current after:content-['']",
         shimmer: "bg-gradient-to-r bg-[length:200%_100%] animate-shimmer",
+        bounce: "hover:animate-bounce",
+        scale: "hover:scale-105 active:scale-95",
+        "scale-lg": "hover:scale-110 active:scale-95",
+        float: "hover:-translate-y-1 hover:shadow-lg",
+        "moving-border":
+          "relative before:absolute before:inset-0 before:p-[2px] before:bg-gradient-to-r before:from-primary before:via-primary/80 before:to-primary before:animate-spin before:duration-[3s] before:content-[''] after:absolute after:inset-[2px] after:bg-current after:content-['']",
       },
     },
     defaultVariants: {
@@ -231,7 +238,7 @@ function Button({
 
   const getStateVariant = () => {
     if (state === "success") {
-      return variant?.includes("primary") ? "primary-glow" : "secondary-glow";
+      return variant?.includes("enhanced") ? "enhanced-glow" : "secondary";
     }
     if (state === "error") {
       return "destructive";
