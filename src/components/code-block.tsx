@@ -1,39 +1,33 @@
 "use client";
 
-import React from "react";
-
 import { CodeBlock } from "@/components/ui/code-block";
 
 export function CodeBlockDemo() {
-  const code = `const DummyComponent = () => {
-  const [count, setCount] = React.useState(0);
-
-  const handleClick = () => {
-    setCount(prev => prev + 1);
-  };
-
-  return (
-    <div className="p-4 border rounded-lg">
-      <h2 className="text-xl font-bold mb-4">Fights Counter</h2>
-      <p className="mb-2">Fight Club Fights Count: {count}</p>
-      <button 
-        onClick={handleClick}
-        className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-      >
-        Increment
-      </button>
-    </div>
-  );
-};
-`;
+  const sampleCode = `// Design tools that work with you
+const createDesign = async () => {
+  const canvas = new Canvas({
+    width: 1920,
+    height: 1080,
+    background: 'gradient'
+  });
+  
+  await canvas.addLayer({
+    type: 'text',
+    content: 'Beautiful Design',
+    font: 'Inter',
+    size: 48
+  });
+  
+  return canvas.export('png');
+};`;
 
   return (
-    <div className="max-w-3xl mx-auto w-full">
+    <div className="w-96">
       <CodeBlock
-        language="jsx"
-        filename="DummyComponent.jsx"
-        highlightLines={[9, 13, 14, 18]}
-        code={code}
+        language="javascript"
+        filename="design-tools.js"
+        code={sampleCode}
+        highlightLines={[2, 8, 9, 10]}
       />
     </div>
   );
