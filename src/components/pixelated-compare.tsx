@@ -1,7 +1,6 @@
 "use client";
 import React from "react";
 import { Compare } from "@/components/ui/compare";
-import { PixelatedCanvas } from "@/components/ui/pixelated-canvas";
 
 interface PixelatedCompareProps {
   src: string;
@@ -38,27 +37,11 @@ export function PixelatedCompare({
   tintStrength = 0.08,
   objectFit = "cover",
 }: PixelatedCompareProps) {
-  // Create a canvas element for the pixelated version
-  const canvasRef = React.useRef<HTMLCanvasElement>(null);
+  // Create state for the pixelated version
   const [pixelatedDataUrl, setPixelatedDataUrl] = React.useState<string>("");
 
   React.useEffect(() => {
     // Create an off-screen canvas to render the pixelated version
-    const offscreenCanvas = document.createElement("canvas");
-    const pixelatedCanvas = React.createElement(PixelatedCanvas, {
-      src,
-      width,
-      height,
-      cellSize,
-      dotScale,
-      shape,
-      backgroundColor,
-      sampleAverage,
-      tintColor,
-      tintStrength,
-      objectFit,
-      dropoutStrength,
-    });
 
     // We need to render the pixelated canvas and convert it to data URL
     // This is a bit tricky since we need to wait for the canvas to render
@@ -83,7 +66,6 @@ export function PixelatedCompare({
       const ctx = tempCanvas.getContext("2d");
       if (!ctx) return;
 
-      const dpr = 1; // Use 1 for simplicity
       tempCanvas.width = width;
       tempCanvas.height = height;
 

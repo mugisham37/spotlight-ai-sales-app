@@ -3,7 +3,7 @@ import Hero from "@/sections/Hero";
 
 export default function Home() {
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen relative">
       <Navbar />
       <Hero />
     </div>

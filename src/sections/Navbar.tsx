@@ -220,7 +220,7 @@ export default function Navbar() {
       <motion.div
         className={cn(
           "w-full transition-all duration-500 ease-in-out z-50",
-          isFloating ? "fixed top-6" : "relative"
+          isFloating ? "fixed top-6" : "absolute top-0 left-0 right-0"
         )}
         animate={{
           y: isFloating ? 0 : 0,
@@ -251,7 +251,7 @@ export default function Navbar() {
                 "border rounded-full items-center backdrop-blur-xl transition-all duration-500",
                 isFloating
                   ? "flex gap-6 px-8 py-3 border-white/25 bg-black/95 shadow-2xl shadow-lime-400/20"
-                  : "grid grid-cols-2 lg:grid-cols-3 p-3 px-6 md:pr-3 border-white/15 bg-black/20"
+                  : "grid grid-cols-2 lg:grid-cols-3 p-3 px-6 md:pr-3 border-white/10 bg-black/10"
               )}
             >
               {/* Logo */}

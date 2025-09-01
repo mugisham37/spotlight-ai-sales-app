@@ -4,6 +4,7 @@ import { SparklesCore } from "@/components/ui/sparkles";
 import { AnimatePresence, motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { IconDotsVertical } from "@tabler/icons-react";
+import Image from "next/image";
 
 interface CompareProps {
   firstImage?: string;
@@ -24,7 +25,7 @@ export const Compare = ({
   className,
   firstImageClassName,
   secondImageClassname,
-  initialSliderPercentage = 50,
+
   slideMode = "hover",
   showHandlebar = true,
   autoplay = false,
@@ -33,7 +34,7 @@ export const Compare = ({
   const [sliderXPercent, setSliderXPercent] = useState(0); // Start at 0 (left side)
   const [isDragging, setIsDragging] = useState(false);
   const sliderRef = useRef<HTMLDivElement>(null);
-  const [isMouseOver, setIsMouseOver] = useState(false);
+
   const autoplayRef = useRef<NodeJS.Timeout | null>(null);
 
   const startAutoplay = useCallback(() => {
@@ -63,12 +64,10 @@ export const Compare = ({
   }, [startAutoplay, stopAutoplay]);
 
   function mouseEnterHandler() {
-    setIsMouseOver(true);
     stopAutoplay();
   }
 
   function mouseLeaveHandler() {
-    setIsMouseOver(false);
     if (slideMode === "hover") {
       setSliderXPercent(0); // Return to left side (pixelated only)
     }
@@ -78,14 +77,11 @@ export const Compare = ({
     startAutoplay();
   }
 
-  const handleStart = useCallback(
-    (clientX: number) => {
-      if (slideMode === "drag") {
-        setIsDragging(true);
-      }
-    },
-    [slideMode]
-  );
+  const handleStart = useCallback(() => {
+    if (slideMode === "drag") {
+      setIsDragging(true);
+    }
+  }, [slideMode]);
 
   const handleEnd = useCallback(() => {
     if (slideMode === "drag") {
@@ -108,24 +104,18 @@ export const Compare = ({
     [slideMode, isDragging]
   );
 
-  const handleMouseDown = useCallback(
-    (e: React.MouseEvent) => handleStart(e.clientX),
-    [handleStart]
-  );
+  const handleMouseDown = useCallback(() => handleStart(), [handleStart]);
   const handleMouseUp = useCallback(() => handleEnd(), [handleEnd]);
   const handleMouseMove = useCallback(
     (e: React.MouseEvent) => handleMove(e.clientX),
     [handleMove]
   );
 
-  const handleTouchStart = useCallback(
-    (e: React.TouchEvent) => {
-      if (!autoplay) {
-        handleStart(e.touches[0].clientX);
-      }
-    },
-    [handleStart, autoplay]
-  );
+  const handleTouchStart = useCallback(() => {
+    if (!autoplay) {
+      handleStart();
+    }
+  }, [handleStart, autoplay]);
 
   const handleTouchEnd = useCallback(() => {
     if (!autoplay) {
@@ -202,11 +192,12 @@ export const Compare = ({
               }}
               transition={{ duration: 0 }}
             >
-              <img
+              <Image
                 alt="first image"
                 src={firstImage}
+                fill
                 className={cn(
-                  "absolute inset-0  z-20 rounded-2xl shrink-0 w-full h-full select-none",
+                  "absolute inset-0  z-20 rounded-2xl shrink-0 w-full h-full select-none object-cover",
                   firstImageClassName
                 )}
                 draggable={false}
@@ -218,15 +209,20 @@ export const Compare = ({
 
       <AnimatePresence initial={false}>
         {secondImage ? (
-          <motion.img
+          <motion.div
             className={cn(
               "absolute top-0 left-0 z-[19]  rounded-2xl w-full h-full select-none",
               secondImageClassname
             )}
-            alt="second image"
-            src={secondImage}
-            draggable={false}
-          />
+          >
+            <Image
+              alt="second image"
+              src={secondImage}
+              fill
+              className="object-cover rounded-2xl"
+              draggable={false}
+            />
+          </motion.div>
         ) : null}
       </AnimatePresence>
     </div>
