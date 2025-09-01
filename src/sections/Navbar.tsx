@@ -9,6 +9,7 @@ import {
 } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import OnboardingModal from "@/components/Onboarding";
 
 const navLinks = [
   {
@@ -74,6 +75,7 @@ export default function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isFloating, setIsFloating] = useState(false);
   const [activeSection, setActiveSection] = useState("home");
+  const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
 
   const { scrollYProgress } = useScroll();
 
@@ -366,12 +368,7 @@ export default function Navbar() {
                       "relative overflow-hidden group transition-all duration-300 bg-lime-400 text-neutral-950 border-lime-400 shadow-lime-400/25 hover:bg-lime-500 hover:border-lime-500 hover:shadow-lime-500/30 focus-visible:ring-lime-400/50",
                       isFloating && "text-xs px-4"
                     )}
-                    onClick={async () => {
-                      // Simulate contact action
-                      await new Promise((resolve) => setTimeout(resolve, 1500));
-                    }}
-                    loadingText="Connecting..."
-                    successText="Let's talk!"
+                    onClick={() => setIsOnboardingOpen(true)}
                   >
                     <span className="relative z-10 transition-transform duration-200 group-hover:scale-105">
                       Hire Me
@@ -455,13 +452,10 @@ export default function Navbar() {
                         size="lg"
                         effect="glow"
                         className="w-full bg-lime-400 text-neutral-950 border-lime-400 shadow-lime-400/25 hover:bg-lime-500 hover:border-lime-500 hover:shadow-lime-500/30 focus-visible:ring-lime-400/50"
-                        onClick={async () => {
-                          await new Promise((resolve) =>
-                            setTimeout(resolve, 1500)
-                          );
+                        onClick={() => {
+                          setIsOnboardingOpen(true);
+                          setIsMobileMenuOpen(false);
                         }}
-                        loadingText="Connecting..."
-                        successText="Let's talk!"
                       >
                         Hire Me
                       </Button>
@@ -473,6 +467,12 @@ export default function Navbar() {
           </div>
         </motion.section>
       </motion.div>
+
+      {/* Onboarding Modal */}
+      <OnboardingModal
+        isOpen={isOnboardingOpen}
+        onClose={() => setIsOnboardingOpen(false)}
+      />
     </>
   );
 }
