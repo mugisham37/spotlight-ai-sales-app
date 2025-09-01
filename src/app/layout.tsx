@@ -5,7 +5,7 @@ import "./globals.css";
 const inter = Inter({
   variable: "--font-geist-sans",
   subsets: ["latin"],
-  display: "swap"
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -14,14 +14,15 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({
-  children,  
+  children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  return (  
+  return (
     <html lang="en">
       <body
-        className={`${inter.variable} font-sans antialiased bg-neutral-950 text-white pb-2[10000px]`}
+        className={`${inter.variable} font-sans antialiased bg-neutral-950 text-white`}
+        suppressHydrationWarning={true}
       >
         {children}
       </body>

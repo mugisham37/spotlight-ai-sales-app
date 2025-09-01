@@ -9,6 +9,18 @@ const nextConfig: NextConfig = {
         port: "",
         pathname: "/**",
       },
+      {
+        protocol: "https",
+        hostname: "picsum.photos",
+        port: "",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "api.microlink.io",
+        port: "",
+        pathname: "/**",
+      },
     ],
   },
   experimental: {
@@ -18,6 +30,8 @@ const nextConfig: NextConfig = {
       },
     },
   },
+  // Suppress hydration warnings for browser extensions
+  reactStrictMode: true,
 };
 
 export default nextConfig;

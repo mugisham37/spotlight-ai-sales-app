@@ -2,22 +2,22 @@ import FlowingMenu from "../components/ui/flowing-menu";
 
 const demoItems = [
   {
-    link: "#",
+    link: "https://tailwindcss.com",
     text: "Mojave",
     image: "https://picsum.photos/600/400?random=1",
   },
   {
-    link: "#",
+    link: "https://framer.com/motion",
     text: "Sonoma",
     image: "https://picsum.photos/600/400?random=2",
   },
   {
-    link: "#",
+    link: "https://nextjs.org",
     text: "Monterey",
     image: "https://picsum.photos/600/400?random=3",
   },
   {
-    link: "#",
+    link: "https://ui.aceternity.com",
     text: "Sequoia",
     image: "https://picsum.photos/600/400?random=4",
   },

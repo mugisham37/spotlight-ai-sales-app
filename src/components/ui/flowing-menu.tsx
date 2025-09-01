@@ -2,6 +2,7 @@
 
 import React from "react";
 import { gsap } from "gsap";
+import { HydrationSafeLinkPreview } from "./hydration-safe-link-preview";
 
 interface MenuItemProps {
   link: string;
@@ -44,7 +45,7 @@ const MenuItem: React.FC<MenuItemProps> = ({ link, text, image }) => {
     return topEdgeDist < bottomEdgeDist ? "top" : "bottom";
   };
 
-  const handleMouseEnter = (ev: React.MouseEvent<HTMLAnchorElement>) => {
+  const handleMouseEnter = (ev: React.MouseEvent<HTMLElement>) => {
     if (!itemRef.current || !marqueeRef.current || !marqueeInnerRef.current)
       return;
     const rect = itemRef.current.getBoundingClientRect();
@@ -61,7 +62,7 @@ const MenuItem: React.FC<MenuItemProps> = ({ link, text, image }) => {
       .to([marqueeRef.current, marqueeInnerRef.current], { y: "0%" });
   };
 
-  const handleMouseLeave = (ev: React.MouseEvent<HTMLAnchorElement>) => {
+  const handleMouseLeave = (ev: React.MouseEvent<HTMLElement>) => {
     if (!itemRef.current || !marqueeRef.current || !marqueeInnerRef.current)
       return;
     const rect = itemRef.current.getBoundingClientRect();
@@ -100,14 +101,22 @@ const MenuItem: React.FC<MenuItemProps> = ({ link, text, image }) => {
       className="flex-1 relative overflow-hidden text-center shadow-[0_-1px_0_0_#fff]"
       ref={itemRef}
     >
-      <a
+      <HydrationSafeLinkPreview
+        url={link}
+        isStatic={true}
+        imageSrc={image}
+        width={300}
+        height={200}
         className="flex items-center justify-center h-full relative cursor-pointer uppercase no-underline font-semibold text-white text-[4vh] hover:text-[#060010] focus:text-white focus-visible:text-[#060010]"
-        href={link}
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
       >
-        {text}
-      </a>
+        <div
+          className="flex items-center justify-center h-full w-full"
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
+        >
+          {text}
+        </div>
+      </HydrationSafeLinkPreview>
       <div
         className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none bg-white translate-y-[101%]"
         ref={marqueeRef}

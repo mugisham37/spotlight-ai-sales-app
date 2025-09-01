@@ -134,6 +134,12 @@
   body {
     @apply bg-background text-foreground;
   }
+
+  /* Hide browser extension attributes that can cause hydration issues */
+  [data-new-gr-c-s-check-loaded],
+  [data-gr-ext-installed] {
+    display: contents;
+  }
 }
 
 @layer utilities {
@@ -212,5 +218,19 @@
 
   .nav-link-glow:hover {
     text-shadow: 0 0 8px oklch(0.84 0.18 130);
+  }
+
+  /* Marquee animation for flowing menu */
+  @keyframes marquee {
+    0% {
+      transform: translateX(0%);
+    }
+    100% {
+      transform: translateX(-50%);
+    }
+  }
+
+  .animate-marquee {
+    animation: marquee 15s linear infinite;
   }
 }
