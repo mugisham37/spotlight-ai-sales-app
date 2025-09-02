@@ -30,6 +30,15 @@ const nextConfig: NextConfig = {
       },
     },
   },
+  webpack: (config) => {
+    // Handle .glb files
+    config.module.rules.push({
+      test: /\.(glb|gltf)$/,
+      type: "asset/resource",
+    });
+
+    return config;
+  },
   // Suppress hydration warnings for browser extensions
   reactStrictMode: true,
 };
