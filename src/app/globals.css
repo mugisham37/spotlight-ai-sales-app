@@ -1,8 +1,11 @@
+
 @import "tailwindcss";
 @import "tw-animate-css";
 
+/* Tailwind CSS custom variant for dark mode */
 @custom-variant dark (&:is(.dark *));
 
+/* Tailwind CSS theme configuration */
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -415,12 +418,62 @@
   }
 }
 
+/* Enhanced responsive design with production-level media queries */
 @media (max-width: 640px) {
   .call-controls {
     padding: 8px;
+    gap: 4px; /* Better spacing on mobile */
   }
   
   .call-controls button {
     padding: 8px;
+    min-width: 44px; /* Touch target accessibility */
+    min-height: 44px;
+  }
+  
+  /* Mobile-specific optimizations */
+  .iconBackground {
+    border-width: 1px; /* Better visibility on small screens */
+  }
+  
+  .speaking-animation::before {
+    width: calc(100% + 16px); /* Smaller animation on mobile */
+    height: calc(100% + 16px);
+  }
+  
+  .speaking-animation::after {
+    width: calc(100% + 32px);
+    height: calc(100% + 32px);
+  }
+}
+
+/* Tablet and medium screen optimizations */
+@media (min-width: 641px) and (max-width: 1024px) {
+  .call-controls {
+    padding: 12px;
+    gap: 8px;
+  }
+  
+  .call-controls button {
+    padding: 10px;
+  }
+}
+
+/* Large screen optimizations */
+@media (min-width: 1025px) {
+  .call-controls {
+    padding: 16px;
+    gap: 12px;
+  }
+  
+  .call-controls button {
+    padding: 12px;
+  }
+}
+
+/* High DPI display optimizations */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .iconBackground {
+    border-width: 0.5px; /* Crisp borders on high DPI */
   }
 }
