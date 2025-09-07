@@ -16,6 +16,12 @@ import {
 import { AppError, ErrorType, ErrorSeverity } from "@/lib/error-handler";
 import { ErrorResponseFormatter, ERROR_CODES } from "@/lib/error-responses";
 import { structuredLogger } from "@/lib/structured-logger";
+import {
+  AuthErrorMessage,
+  AuthRetryMechanism,
+  AuthInfoMessage,
+} from "./AuthFeedback";
+import { AuthTransition } from "./AuthLoadingStates";
 
 interface AuthError {
   code?: string;

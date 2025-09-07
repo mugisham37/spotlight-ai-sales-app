@@ -121,7 +121,7 @@ const nextConfig: NextConfig = {
     ];
   },
 
-  // Experimental features for security
+  // Experimental features for security and performance
   experimental: {
     // Enable server actions security
     serverActions: {
@@ -130,15 +130,59 @@ const nextConfig: NextConfig = {
         process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
       ],
     },
+    // Enable optimized package imports for better tree shaking
+    optimizePackageImports: ["@clerk/nextjs", "lucide-react"],
+    // Enable partial prerendering for better performance
+    ppr: true,
   },
 
-  // Webpack configuration for security
+  // Webpack configuration for security and performance
   webpack: (config, { dev, isServer }) => {
     // Security-related webpack configurations
     if (!dev && !isServer) {
       // Remove source maps in production for security
       config.devtool = false;
+
+      // Optimize bundle splitting for authentication components
+      config.optimization = {
+        ...config.optimization,
+        splitChunks: {
+          ...config.optimization.splitChunks,
+          cacheGroups: {
+            ...config.optimization.splitChunks.cacheGroups,
+            // Create separate chunk for Clerk authentication
+            clerk: {
+              test: /[\\/]node_modules[\\/]@clerk[\\/]/,
+              name: "clerk",
+              chunks: "all",
+              priority: 30,
+            },
+            // Create separate chunk for authentication components
+            auth: {
+              test: /[\\/]src[\\/]components[\\/]auth[\\/]/,
+              name: "auth-components",
+              chunks: "all",
+              priority: 25,
+            },
+            // Create separate chunk for UI components
+            ui: {
+              test: /[\\/]src[\\/]components[\\/]ui[\\/]/,
+              name: "ui-components",
+              chunks: "all",
+              priority: 20,
+            },
+          },
+        },
+      };
     }
+
+    // Performance optimizations for all environments
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      // Optimize React imports
+      react: "react",
+      "react-dom": "react-dom",
+    };
 
     return config;
   },

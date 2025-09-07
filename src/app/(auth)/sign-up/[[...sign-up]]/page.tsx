@@ -1,30 +1,93 @@
 "use client";
 
 import React, { Suspense } from "react";
-import { SignUp } from "@clerk/nextjs";
+import {
+  LazyAuthComponent,
+  useProgressiveAuth,
+  AuthBundleOptimizer,
+} from "@/components/auth/AuthLazyLoader";
 import { AuthErrorBoundary } from "@/components/auth/AuthErrorHandler";
 import {
   AuthPageSkeleton,
   AuthTransition,
 } from "@/components/auth/AuthLoadingStates";
+import {
+  AuthSuccessMessage,
+  AuthInfoMessage,
+  useAuthFeedback,
+} from "@/components/auth/AuthFeedback";
 
 const SignUpContent = () => {
   const [isLoading, setIsLoading] = React.useState(true);
+  const { feedback, showSuccess, showInfo, clearFeedback } = useAuthFeedback();
+  const { preloadFeatures, isFeatureLoaded } = useProgressiveAuth();
 
   React.useEffect(() => {
-    // Simulate initial loading state
-    const timer = setTimeout(() => setIsLoading(false), 500);
+    // Initialize bundle optimization
+    AuthBundleOptimizer.preloadCriticalResources();
+    AuthBundleOptimizer.optimizeAuthImages();
+
+    // Preload authentication features
+    preloadFeatures(["feedback", "errorHandling"]);
+
+    // Simulate initial loading state with performance measurement
+    const perfMeasure = AuthBundleOptimizer.measurePerformance("SignUpPage");
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+      perfMeasure.end();
+    }, 500);
+
     return () => clearTimeout(timer);
-  }, []);
+  }, [preloadFeatures]);
+
+  // Show welcome message for new users
+  React.useEffect(() => {
+    const hasSeenWelcome = localStorage.getItem("hasSeenSignUpWelcome");
+    if (!hasSeenWelcome && isFeatureLoaded("feedback")) {
+      showInfo(
+        "Create your account in seconds! Use your email or choose a social sign-up option.",
+        "Welcome to our platform!"
+      );
+      localStorage.setItem("hasSeenSignUpWelcome", "true");
+    }
+  }, [showInfo, isFeatureLoaded]);
 
   if (isLoading) {
-    return <AuthPageSkeleton />;
+    return (
+      <AuthPageSkeleton
+        showProgress={true}
+        message="Setting up registration..."
+      />
+    );
   }
 
   return (
-    <AuthTransition isVisible={!isLoading}>
+    <AuthTransition isVisible={!isLoading} type="fade-slide" duration={400}>
       <div className="flex items-center justify-center min-h-screen bg-background">
         <div className="w-full max-w-md p-6">
+          {/* Feedback Messages */}
+          {feedback.type === "success" && (
+            <div className="mb-6">
+              <AuthSuccessMessage
+                title={feedback.title}
+                message={feedback.message}
+                autoHide={true}
+                duration={4000}
+              />
+            </div>
+          )}
+
+          {feedback.type === "info" && (
+            <div className="mb-6">
+              <AuthInfoMessage
+                title={feedback.title}
+                message={feedback.message!}
+                dismissible={true}
+                onDismiss={clearFeedback}
+              />
+            </div>
+          )}
+
           {/* Brand Header */}
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-foreground mb-2">
@@ -35,8 +98,11 @@ const SignUpContent = () => {
             </p>
           </div>
 
-          {/* Clerk SignUp Component */}
-          <SignUp
+          {/* Lazy-loaded Clerk SignUp Component */}
+          <LazyAuthComponent
+            component="SignUp"
+            loadingMessage="Loading registration form..."
+            showProgress={true}
             appearance={{
               elements: {
                 // Main card styling

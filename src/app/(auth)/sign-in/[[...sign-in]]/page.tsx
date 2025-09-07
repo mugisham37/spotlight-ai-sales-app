@@ -1,30 +1,90 @@
 "use client";
 
 import React, { Suspense } from "react";
-import { SignIn } from "@clerk/nextjs";
 import { AuthErrorBoundary } from "@/components/auth/AuthErrorHandler";
 import {
   AuthPageSkeleton,
   AuthTransition,
 } from "@/components/auth/AuthLoadingStates";
+import {
+  AuthSuccessMessage,
+  AuthInfoMessage,
+  useAuthFeedback,
+} from "@/components/auth/AuthFeedback";
+import {
+  LazyAuthComponent,
+  useProgressiveAuth,
+  AuthBundleOptimizer,
+} from "@/components/auth/AuthLazyLoader";
 
 const SignInContent = () => {
   const [isLoading, setIsLoading] = React.useState(true);
+  const { feedback, showSuccess, showInfo, clearFeedback } = useAuthFeedback();
+  const { preloadFeatures, isFeatureLoaded } = useProgressiveAuth();
 
   React.useEffect(() => {
-    // Simulate initial loading state
-    const timer = setTimeout(() => setIsLoading(false), 500);
+    // Initialize bundle optimization
+    AuthBundleOptimizer.preloadCriticalResources();
+    AuthBundleOptimizer.optimizeAuthImages();
+
+    // Preload authentication features
+    preloadFeatures(["feedback", "errorHandling"]);
+
+    // Simulate initial loading state with performance measurement
+    const perfMeasure = AuthBundleOptimizer.measurePerformance("SignInPage");
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+      perfMeasure.end();
+    }, 500);
+
     return () => clearTimeout(timer);
-  }, []);
+  }, [preloadFeatures]);
+
+  // Show welcome message for returning users
+  React.useEffect(() => {
+    const hasVisited = localStorage.getItem("hasVisitedSignIn");
+    if (!hasVisited && isFeatureLoaded("feedback")) {
+      showInfo(
+        "Welcome! Sign in with your email or use one of the social options above.",
+        "First time here?"
+      );
+      localStorage.setItem("hasVisitedSignIn", "true");
+    }
+  }, [showInfo, isFeatureLoaded]);
 
   if (isLoading) {
-    return <AuthPageSkeleton />;
+    return (
+      <AuthPageSkeleton showProgress={true} message="Loading sign-in..." />
+    );
   }
 
   return (
-    <AuthTransition isVisible={!isLoading}>
+    <AuthTransition isVisible={!isLoading} type="fade-slide" duration={400}>
       <div className="flex items-center justify-center min-h-screen bg-background">
         <div className="w-full max-w-md p-6">
+          {/* Feedback Messages */}
+          {feedback.type === "success" && (
+            <div className="mb-6">
+              <AuthSuccessMessage
+                title={feedback.title}
+                message={feedback.message}
+                autoHide={true}
+                duration={4000}
+              />
+            </div>
+          )}
+
+          {feedback.type === "info" && (
+            <div className="mb-6">
+              <AuthInfoMessage
+                title={feedback.title}
+                message={feedback.message!}
+                dismissible={true}
+                onDismiss={clearFeedback}
+              />
+            </div>
+          )}
+
           {/* Brand Header */}
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-foreground mb-2">
@@ -35,8 +95,11 @@ const SignInContent = () => {
             </p>
           </div>
 
-          {/* Clerk SignIn Component */}
-          <SignIn
+          {/* Lazy-loaded Clerk SignIn Component */}
+          <LazyAuthComponent
+            component="SignIn"
+            loadingMessage="Loading sign-in form..."
+            showProgress={true}
             appearance={{
               elements: {
                 // Main card styling
