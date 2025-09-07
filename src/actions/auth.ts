@@ -28,5 +28,19 @@ export async function onAuthenticateUser(){
                 profileImage:user.imageUrl,
             }
         })
-    }catch (error){}
+        if (!newUser){
+            return{
+                status:500,
+                message:"Failed to create user"
+            }
+
+            return{
+                status: 201,
+                user: newUser,
+            }
+        }
+    }catch (error){
+        console.log(error)
+        return{status:500, message:"Internal server error"}
+    }
 }
