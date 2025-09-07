@@ -11,35 +11,7 @@ import { usePathname } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import React from "react";
-import { Home, Users, Settings, BarChart } from "lucide-react";
-
-// Sidebar navigation data
-const sidebarData = [
-  {
-    id: 1,
-    link: "/dashboard",
-    icon: Home,
-    label: "Dashboard",
-  },
-  {
-    id: 2,
-    link: "/webinars",
-    icon: Users,
-    label: "Webinars",
-  },
-  {
-    id: 3,
-    link: "/analytics",
-    icon: BarChart,
-    label: "Analytics",
-  },
-  {
-    id: 4,
-    link: "/settings",
-    icon: Settings,
-    label: "Settings",
-  },
-];
+import { sidebarData } from "@/lib/data";
 
 const Sidebar = () => {
   const pathname = usePathname();
@@ -77,7 +49,7 @@ const Sidebar = () => {
                   </Link>
                 </TooltipTrigger>
                 <TooltipContent side="right">
-                  <p>{item.label}</p>
+                  <p>{item.title}</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>

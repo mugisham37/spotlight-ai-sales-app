@@ -57,139 +57,9 @@ export class BruteForceProtection {
     trackByEmail: true,
   };
 
-  private static attempts: Map<string, LoginAttempt[]> = new Map();
-
-  static async checkLoginAttempt(
-    identifier: string,
-    config: Partial<BruteForceConfig> = {}
-  ): Promise<BruteForceResult> {
-    const finalConfig = { ...this.DEFAULT_CONFIG, ...config };
-    const now = new Date();
-    const windowStart = new Date(now.getTime() - finalConfig.windowMinutes * 60 * 1000);
-    
-    const attempts = this.attempts.get(identifier) || [];
-    const recentAttempts = attempts.filter(attempt => 
-      attempt.timestamp >= windowStart && !attempt.success
-    );
-
-    const attemptsRemaining = Math.max(0, finalConfig.maxAttempts - recentAttempts.length);
-    
-    if (recentAttempts.length >= finalConfig.maxAttempts) {
-      const lockoutUntil = new Date(now.getTime() + finalConfig.lockoutMinutes * 60 * 1000);
-      return {
-        allowed: false,
-        attemptsRemaining: 0,
-        lockoutUntil,
-        reason: "Too many failed attempts",
-        severity: "high"
-      };
-    }
-
-    return {
-      allowed: true,
-      attemptsRemaining,
-      severity: "low"
-    };
-  }
-
-  static async recordLoginAttempt(
-    identifier: string,
-    success: boolean,
-    userId?: string,
-    metadata?: Record<string, string | number | boolean | Date | null | undefined>
-  ): Promise<void> {
-    const headersList = await headers();
-    const attempt: LoginAttempt = {
-      id: crypto.randomUUID(),
-      identifier,
-      ipAddress: headersList.get('x-forwarded-for') || 'unknown',
-      userAgent: headersList.get('user-agent') || 'unknown',
-      success,
-      timestamp: new Date(),
-      userId,
-      metadata
-    };
-
-    const attempts = this.attempts.get(identifier) || [];
-    attempts.push(attempt);
-    this.attempts.set(identifier, attempts);
-
-    structuredLogger.logSecurity({
-      level: success ? LogLevel.INFO : LogLevel.WARN,
-      message: `Login attempt ${success ? 'succeeded' : 'failed'} for ${identifier}`,
-      requestId: crypto.randomUUID(),
-      userId,
-      eventType: success ? "suspicious_login" : "brute_force",
-      severity: success ? "low" : "medium",
-      metadata: {
-        identifier,
-        success,
-        ...metadata
-      }
-    });
-  }
-
-  static async clearFailedAttempts(identifier: string): Promise<void> {
-    const attempts = this.attempts.get(identifier) || [];
-    const successfulAttempts = attempts.filter(attempt => attempt.success);
-    this.attempts.set(identifier, successfulAttempts);
-  }
-}
-
-export class UnusualPatternDetector {
-  static async detectUnusualPatterns(
-    userId: string,
-    context: {
-      ipAddress: string;
-      userAgent: string;
-      timestamp: Date;
-    }
-  ): Promise<{
-    isUnusual: boolean;
-    patterns: string[];
-    severity: SecuritySeverity;
-    recommendedActions: string[];
-  }> {
-    // Simple implementation - in production this would be more sophisticated
-    return {
-      isUnusual: false,
-      patterns: [],
-      severity: "low",
-      recommendedActions: []
-    };
-  }
-}
-
-export class SecurityAlerts {
-  static async sendUnusualLoginAlert(
-    userId: string,
-    patterns: string[],
-    severity: SecuritySeverity
-  ): Promise<void> {
-    structuredLogger.logSecurity({
-      level: LogLevel.WARN,
-      message: "Unusual login pattern detected",
-      requestId: crypto.randomUUID(),
-      userId,
-      eventType: "unusual_pattern",
-      severity,
-      metadata: {
-        patterns: patterns.join(", "),
-        alertSent: true
-      }
-    });
-  }
-}
-  private static readonly DEFAULT_CONFIG: BruteForceConfig = {
-    maxAttempts: 5,
-    windowMinutes: 15,
-    lockoutMinutes: 30,
-    progressiveLockout: true,
-    trackByIp: true,
-    trackByEmail: true,
-  };
-
   private static readonly PROGRESSIVE_LOCKOUT_MULTIPLIERS = [1, 2, 4, 8, 16]; // Minutes multiplier
+
+  private static attempts: Map<string, LoginAttempt[]> = new Map();
 
   /**
    * Check if login attempt is allowed
@@ -313,8 +183,21 @@ export class SecurityAlerts {
         "unknown";
       const userAgent = headersList.get("user-agent") || "unknown";
 
-      // In a real implementation, you would store this in a dedicated table
-      // For now, we'll log it and simulate storage
+      // Store the attempt in memory (in production, use a database)
+      const attempt: LoginAttempt = {
+        id: crypto.randomUUID(),
+        identifier,
+        ipAddress,
+        userAgent,
+        success,
+        timestamp: new Date(),
+        userId,
+        metadata,
+      };
+
+      const attempts = this.attempts.get(identifier) || [];
+      attempts.push(attempt);
+      this.attempts.set(identifier, attempts);
 
       structuredLogger.logAuth({
         level: success ? LogLevel.INFO : LogLevel.WARN,
@@ -380,11 +263,18 @@ export class SecurityAlerts {
     config: BruteForceConfig
   ): Promise<BruteForceResult> {
     try {
-      // In a real implementation, this would query your attempts table
-      // For now, we'll simulate the check
+      // Get attempts from memory (in production, query database)
+      const attempts = this.attempts.get(identifier) || [];
+      const now = new Date();
+      const windowStart = new Date(
+        now.getTime() - config.windowMinutes * 60 * 1000
+      );
 
-      // Simulate failed attempts count
-      const failedAttempts = Math.floor(Math.random() * 3); // 0-2 failed attempts
+      // Count failed attempts in the time window
+      const failedAttempts = attempts.filter(
+        (attempt) => attempt.timestamp >= windowStart && !attempt.success
+      ).length;
+
       const attemptsRemaining = Math.max(
         0,
         config.maxAttempts - failedAttempts
@@ -453,7 +343,11 @@ export class SecurityAlerts {
     const requestId = crypto.randomUUID();
 
     try {
-      // In a real implementation, this would clear failed attempts from your table
+      // Clear failed attempts from memory (in production, update database)
+      const attempts = this.attempts.get(identifier) || [];
+      const successfulAttempts = attempts.filter((attempt) => attempt.success);
+      this.attempts.set(identifier, successfulAttempts);
+
       structuredLogger.logAuth({
         level: LogLevel.INFO,
         message: "Failed attempts cleared after successful login",
@@ -491,15 +385,33 @@ export class SecurityAlerts {
     identifier: string
   ): Promise<AccountLockStatus> {
     try {
-      // In a real implementation, this would query your database for the specific identifier
-      // For now, we'll simulate the status for identifier: ${identifier}
+      // Check current attempts from memory (in production, query database)
+      const attempts = this.attempts.get(identifier) || [];
+      const now = new Date();
+      const windowStart = new Date(
+        now.getTime() - this.DEFAULT_CONFIG.windowMinutes * 60 * 1000
+      );
+
+      const recentFailedAttempts = attempts.filter(
+        (attempt) => attempt.timestamp >= windowStart && !attempt.success
+      );
+
+      const isLocked =
+        recentFailedAttempts.length >= this.DEFAULT_CONFIG.maxAttempts;
+      const lastAttempt =
+        attempts.length > 0
+          ? attempts[attempts.length - 1].timestamp
+          : undefined;
+
       console.log(
         `[BruteForceProtection] Checking lock status for ${identifier}`
       );
+
       return {
-        isLocked: false,
-        attemptCount: 0,
-        lockoutReason: undefined,
+        isLocked,
+        attemptCount: recentFailedAttempts.length,
+        lastAttempt,
+        lockoutReason: isLocked ? "Too many failed attempts" : undefined,
       };
     } catch {
       return {
@@ -570,7 +482,9 @@ export class SecurityAlerts {
     const requestId = crypto.randomUUID();
 
     try {
-      // In a real implementation, this would update your database
+      // Clear all attempts for this identifier
+      this.attempts.delete(identifier);
+
       structuredLogger.logSecurity({
         level: LogLevel.INFO,
         message: "Account manually unlocked",
@@ -643,7 +557,7 @@ export class UnusualPatternDetector {
       }
 
       // Check for rapid successive attempts
-      const recentAttempts = await this.getRecentAttempts(); // 5 minutes
+      const recentAttempts = await this.getRecentAttempts();
       if (recentAttempts > 3) {
         patterns.push("Rapid successive login attempts");
         severity = "high";
@@ -741,34 +655,48 @@ export class SecurityAlerts {
   /**
    * Send security alert for unusual login patterns
    */
-  static async sendUnusualLoginAlert(
+  static async sendSecurityAlert(
     userId: string,
-    patterns: string[],
-    severity: "low" | "medium" | "high" | "critical"
-  ): Promise<void> {
+    alertType: "unusual_pattern" | "brute_force" | "account_locked",
+    details: {
+      patterns?: string[];
+      severity: SecuritySeverity;
+      ipAddress?: string;
+      userAgent?: string;
+      timestamp: Date;
+      recommendedActions?: string[];
+    }
+  ): Promise<boolean> {
     const requestId = crypto.randomUUID();
 
     try {
-      // In a real implementation, this would send email/SMS alerts
+      // In a real implementation, this would send emails/SMS/push notifications
       structuredLogger.logSecurity({
-        level: severity === "critical" ? LogLevel.ERROR : LogLevel.WARN,
-        message: "Security alert sent for unusual login",
+        level:
+          details.severity === "high" || details.severity === "critical"
+            ? LogLevel.WARN
+            : LogLevel.INFO,
+        message: `Security alert sent: ${alertType}`,
         requestId,
         userId,
         eventType: "security_alert",
-        severity,
+        severity: details.severity,
         metadata: {
-          patternsCount: patterns.length,
-          patternsList: patterns.join(", "),
-          alertType: "unusual_login",
+          alertType,
+          patternsCount: details.patterns?.length || 0,
+          patternsList: details.patterns?.join(", ") || "",
+          ipAddress: details.ipAddress,
+          userAgent: details.userAgent,
+          timestamp: details.timestamp.toISOString(),
+          actionsCount: details.recommendedActions?.length || 0,
+          actionsList: details.recommendedActions?.join(", ") || "",
         },
       });
 
       console.log(
-        `[SecurityAlerts] Sent ${severity} security alert for user ${userId}: ${patterns.join(
-          ", "
-        )}`
+        `[SecurityAlerts] Alert sent to user ${userId}: ${alertType}`
       );
+      return true;
     } catch (error) {
       structuredLogger.logAuth({
         level: LogLevel.ERROR,
@@ -778,44 +706,48 @@ export class SecurityAlerts {
         action: "send_security_alert_error",
         success: false,
         metadata: {
-          patternsCount: patterns.length,
-          patternsList: patterns.join(", "),
-          severity,
+          alertType,
           errorMessage:
             error instanceof Error ? error.message : "Unknown error",
         },
       });
+
+      return false;
     }
   }
 
   /**
-   * Send account lockout notification
+   * Send lockout notification
    */
   static async sendLockoutNotification(
     identifier: string,
     lockoutUntil: Date,
     reason: string
-  ): Promise<void> {
+  ): Promise<boolean> {
     const requestId = crypto.randomUUID();
 
     try {
-      // In a real implementation, this would send email notification
+      // In a real implementation, this would send notification to user
       structuredLogger.logSecurity({
         level: LogLevel.WARN,
-        message: "Account lockout notification sent",
+        message: "Lockout notification sent",
         requestId,
         eventType: "lockout_notification",
-        severity: "medium",
+        severity: "high",
         metadata: {
           identifier,
           lockoutUntil: lockoutUntil.toISOString(),
           reason,
+          lockoutDurationMinutes: Math.round(
+            (lockoutUntil.getTime() - Date.now()) / (1000 * 60)
+          ),
         },
       });
 
       console.log(
-        `[SecurityAlerts] Sent lockout notification for ${identifier}: ${reason}`
+        `[SecurityAlerts] Lockout notification sent for ${identifier}`
       );
+      return true;
     } catch (error) {
       structuredLogger.logAuth({
         level: LogLevel.ERROR,
@@ -830,6 +762,8 @@ export class SecurityAlerts {
             error instanceof Error ? error.message : "Unknown error",
         },
       });
+
+      return false;
     }
   }
 }

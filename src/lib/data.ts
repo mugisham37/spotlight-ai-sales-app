@@ -1,36 +1,48 @@
-import { id } from "date-fns/locale";
-import { link } from "fs";
-import { title } from "process";
+import {
+  Home,
+  Users,
+  UserCheck,
+  Bot,
+  Settings,
+  LucideIcon,
+} from "lucide-react";
 
-export const sidebarData = [
+export interface SidebarItem {
+  id: number;
+  title: string;
+  icon: LucideIcon;
+  link: string;
+}
+
+export const sidebarData: SidebarItem[] = [
   {
     id: 1,
     title: "Dashboard",
-    icon: "/assets/icons/dashboard.svg",
+    icon: Home,
     link: "/home",
   },
   {
     id: 2,
     title: "Webinars",
-    icon: "/assets/icons/webinars.svg",
+    icon: Users,
     link: "/webinars",
   },
   {
     id: 3,
     title: "Leads",
-    icon: "/assets/icons/leads.svg",
+    icon: UserCheck,
     link: "/lead",
   },
   {
     id: 4,
     title: "Ai Agents",
-    icon: "/assets/icons/ai-agents.svg",
+    icon: Bot,
     link: "/ai-agents",
   },
   {
     id: 5,
     title: "Settings",
-    icon: "/assets/icons/settings.svg",
+    icon: Settings,
     link: "/settings",
   },
 ];
