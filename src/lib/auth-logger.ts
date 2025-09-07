@@ -1,10 +1,11 @@
-// Authentication logging utility
+// Authentication logging utility with enhanced monitoring integration
 export interface AuthLogEntry {
   level: "info" | "warn" | "error";
   message: string;
   userId?: string;
   email?: string;
   timestamp: Date;
+  requestId?: string;
   metadata?: Record<
     string,
     string | number | boolean | Date | null | undefined
@@ -16,9 +17,42 @@ export class AuthLogger {
     const timestamp = entry.timestamp.toISOString();
     const userInfo = entry.userId ? ` [User: ${entry.userId}]` : "";
     const emailInfo = entry.email ? ` [Email: ${entry.email}]` : "";
-    return `[${timestamp}] [AUTH-${entry.level.toUpperCase()}]${userInfo}${emailInfo} ${
+    const requestInfo = entry.requestId ? ` [Request: ${entry.requestId}]` : "";
+    return `[${timestamp}] [AUTH-${entry.level.toUpperCase()}]${userInfo}${emailInfo}${requestInfo} ${
       entry.message
     }`;
+  }
+
+  // Enhanced logging with structured output for monitoring systems
+  private static logStructured(entry: AuthLogEntry): void {
+    const structuredLog = {
+      timestamp: entry.timestamp.toISOString(),
+      level: entry.level,
+      component: "auth",
+      message: entry.message,
+      userId: entry.userId,
+      email: entry.email,
+      requestId: entry.requestId,
+      metadata: entry.metadata,
+    };
+
+    // Log both formatted message and structured data
+    const formattedMessage = this.formatMessage(entry);
+
+    switch (entry.level) {
+      case "info":
+        console.log(formattedMessage);
+        console.log("AUTH_STRUCTURED:", JSON.stringify(structuredLog));
+        break;
+      case "warn":
+        console.warn(formattedMessage);
+        console.warn("AUTH_STRUCTURED:", JSON.stringify(structuredLog));
+        break;
+      case "error":
+        console.error(formattedMessage);
+        console.error("AUTH_STRUCTURED:", JSON.stringify(structuredLog));
+        break;
+    }
   }
 
   static info(
@@ -36,9 +70,10 @@ export class AuthLogger {
       userId,
       email,
       timestamp: new Date(),
+      requestId: metadata?.requestId as string,
       metadata,
     };
-    console.log(this.formatMessage(entry));
+    this.logStructured(entry);
   }
 
   static warn(
@@ -56,9 +91,10 @@ export class AuthLogger {
       userId,
       email,
       timestamp: new Date(),
+      requestId: metadata?.requestId as string,
       metadata,
     };
-    console.warn(this.formatMessage(entry));
+    this.logStructured(entry);
   }
 
   static error(
@@ -77,6 +113,7 @@ export class AuthLogger {
       userId,
       email,
       timestamp: new Date(),
+      requestId: metadata?.requestId as string,
       metadata: {
         ...metadata,
         errorName: error?.name,
@@ -84,9 +121,46 @@ export class AuthLogger {
         errorStack: error?.stack,
       },
     };
-    console.error(this.formatMessage(entry));
+    this.logStructured(entry);
     if (error) {
       console.error("Error details:", error);
     }
+  }
+
+  // Get authentication log statistics for monitoring
+  static getLogStats(): {
+    totalLogs: number;
+    errorCount: number;
+    warningCount: number;
+    infoCount: number;
+  } {
+    // In a production environment, this would track actual log counts
+    // For now, return placeholder data
+    return {
+      totalLogs: 0,
+      errorCount: 0,
+      warningCount: 0,
+      infoCount: 0,
+    };
+  }
+
+  // Create a monitoring-friendly log entry
+  static createMonitoringEntry(
+    level: "info" | "warn" | "error",
+    message: string,
+    userId?: string,
+    email?: string,
+    requestId?: string,
+    metadata?: Record<string, unknown>
+  ): AuthLogEntry {
+    return {
+      level,
+      message,
+      userId,
+      email,
+      timestamp: new Date(),
+      requestId,
+      metadata,
+    };
   }
 }

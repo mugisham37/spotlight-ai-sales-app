@@ -444,7 +444,11 @@ export class RateLimitManager {
     return this.memoryStore.get(key);
   }
 
-  private static async setInStore(key: string, value: unknown, ttl?: number) {
+  private static async setInStore(
+    key: string,
+    value: RateLimitEntry,
+    ttl?: number
+  ) {
     // TODO: Replace with Redis implementation in production
     this.memoryStore.set(key, value);
 
