@@ -58,7 +58,15 @@ model User {
   subscription     Boolean   @default(false)
   stripeCustomerId String?   @db.VarChar(255)
 
+  // MFA fields
+  mfaEnabled    Boolean   @default(false)
+  mfaSecret     String?
+  backupCodes   String[]  @default([])
+  mfaEnabledAt  DateTime?
+  lastMfaUsedAt DateTime?
+
   @@index([email])
+  @@index([clerkId])
 }
 
 model Webinar {
