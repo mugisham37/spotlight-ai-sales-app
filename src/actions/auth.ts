@@ -6,6 +6,12 @@ import { AuthLogger } from "@/lib/auth-logger";
 import { ErrorHandler, ErrorType, ErrorSeverity } from "@/lib/error-handler";
 import { ErrorResponseFormatter, ERROR_CODES } from "@/lib/error-responses";
 import { structuredLogger } from "@/lib/structured-logger";
+import {
+  BruteForceProtection,
+  UnusualPatternDetector,
+  SecurityAlerts,
+} from "@/lib/brute-force-protection";
+import { SessionSecurityMonitor } from "@/lib/session-security";
 
 interface User {
   id: string;
@@ -65,6 +71,56 @@ export async function onAuthenticateUser(): Promise<AuthResponse> {
     }
 
     const email = user.emailAddresses[0]?.emailAddress;
+
+    // Check for brute force attempts before proceeding
+    if (email) {
+      const bruteForceCheck = await BruteForceProtection.checkLoginAttempt(
+        email
+      );
+
+      if (!bruteForceCheck.allowed) {
+        // Record the blocked attempt
+        await BruteForceProtection.recordLoginAttempt(email, false, user.id, {
+          reason: "Brute force protection",
+          attemptsRemaining: bruteForceCheck.attemptsRemaining,
+          lockoutUntil: bruteForceCheck.lockoutUntil?.toISOString(),
+        });
+
+        const error = ErrorResponseFormatter.createAuthError(
+          "ACCOUNT_TEMPORARILY_LOCKED",
+          requestId,
+          user.id,
+          {
+            reason: bruteForceCheck.reason,
+            lockoutUntil: bruteForceCheck.lockoutUntil?.toISOString(),
+            attemptsRemaining: bruteForceCheck.attemptsRemaining,
+          }
+        );
+
+        structuredLogger.logAuth({
+          level: "warn",
+          message: "Authentication blocked by brute force protection",
+          requestId,
+          userId: user.id,
+          email,
+          action: "authenticate_brute_force_blocked",
+          success: false,
+          errorCode: error.code,
+          metadata: {
+            reason: bruteForceCheck.reason,
+            severity: bruteForceCheck.severity,
+            lockoutUntil: bruteForceCheck.lockoutUntil?.toISOString(),
+          },
+        });
+
+        return {
+          status: 429,
+          message: error.userMessage,
+          error: error.code,
+          requestId,
+        };
+      }
+    }
 
     structuredLogger.logAuth({
       level: "info",
@@ -159,6 +215,114 @@ export async function onAuthenticateUser(): Promise<AuthResponse> {
 
     if (userExists) {
       const processingTime = Date.now() - startTime;
+
+      // Record successful login attempt
+      if (email) {
+        await BruteForceProtection.recordLoginAttempt(
+          email,
+          true,
+          userExists.id,
+          {
+            processingTime,
+            userType: "existing",
+          }
+        );
+
+        // Clear any failed attempts after successful login
+        await BruteForceProtection.clearFailedAttempts(email);
+      }
+
+      // Check for unusual login patterns
+      try {
+        const patternCheck = await UnusualPatternDetector.detectUnusualPatterns(
+          userExists.id,
+          {
+            ipAddress: "unknown", // Will be determined in the detector
+            userAgent: "unknown", // Will be determined in the detector
+            timestamp: new Date(),
+          }
+        );
+
+        if (patternCheck.isUnusual) {
+          // Send security alert for unusual patterns
+          await SecurityAlerts.sendUnusualLoginAlert(
+            userExists.id,
+            patternCheck.patterns,
+            patternCheck.severity
+          );
+
+          structuredLogger.logSecurity({
+            level: "warn",
+            message: "Unusual login pattern detected during authentication",
+            requestId,
+            userId: userExists.id,
+            eventType: "unusual_pattern",
+            severity: patternCheck.severity,
+            metadata: {
+              patterns: patternCheck.patterns,
+              recommendedActions: patternCheck.recommendedActions,
+            },
+          });
+        }
+      } catch (patternError) {
+        // Don't fail authentication due to pattern detection errors
+        structuredLogger.logAuth({
+          level: "warn",
+          message: "Pattern detection failed during authentication",
+          requestId,
+          userId: userExists.id,
+          action: "pattern_detection_error",
+          success: false,
+          metadata: {
+            errorMessage:
+              patternError instanceof Error
+                ? patternError.message
+                : "Unknown error",
+          },
+        });
+      }
+
+      // Monitor session security
+      try {
+        // This would typically be called with the actual session ID
+        const sessionId = crypto.randomUUID(); // Placeholder
+        const securityResult = await SessionSecurityMonitor.monitorSession(
+          sessionId
+        );
+
+        if (securityResult.isSuspicious) {
+          structuredLogger.logSecurity({
+            level: "warn",
+            message:
+              "Suspicious session activity detected during authentication",
+            requestId,
+            userId: userExists.id,
+            sessionId,
+            eventType: "suspicious_activity",
+            severity: securityResult.severity,
+            metadata: {
+              reasons: securityResult.reasons,
+              recommendedActions: securityResult.recommendedActions,
+            },
+          });
+        }
+      } catch (sessionError) {
+        // Don't fail authentication due to session monitoring errors
+        structuredLogger.logAuth({
+          level: "warn",
+          message: "Session monitoring failed during authentication",
+          requestId,
+          userId: userExists.id,
+          action: "session_monitoring_error",
+          success: false,
+          metadata: {
+            errorMessage:
+              sessionError instanceof Error
+                ? sessionError.message
+                : "Unknown error",
+          },
+        });
+      }
 
       structuredLogger.logAuth({
         level: "info",
@@ -278,6 +442,65 @@ export async function onAuthenticateUser(): Promise<AuthResponse> {
 
     const processingTime = Date.now() - startTime;
 
+    // Record successful login attempt for new user
+    if (email) {
+      await BruteForceProtection.recordLoginAttempt(email, true, newUser.id, {
+        processingTime,
+        userType: "new",
+      });
+    }
+
+    // Check for unusual patterns for new user registration
+    try {
+      const patternCheck = await UnusualPatternDetector.detectUnusualPatterns(
+        newUser.id,
+        {
+          ipAddress: "unknown", // Will be determined in the detector
+          userAgent: "unknown", // Will be determined in the detector
+          timestamp: new Date(),
+        }
+      );
+
+      if (patternCheck.isUnusual) {
+        // Send security alert for unusual patterns during registration
+        await SecurityAlerts.sendUnusualLoginAlert(
+          newUser.id,
+          patternCheck.patterns,
+          patternCheck.severity
+        );
+
+        structuredLogger.logSecurity({
+          level: "warn",
+          message: "Unusual pattern detected during new user registration",
+          requestId,
+          userId: newUser.id,
+          eventType: "unusual_pattern",
+          severity: patternCheck.severity,
+          metadata: {
+            patterns: patternCheck.patterns,
+            recommendedActions: patternCheck.recommendedActions,
+            userType: "new",
+          },
+        });
+      }
+    } catch (patternError) {
+      // Don't fail registration due to pattern detection errors
+      structuredLogger.logAuth({
+        level: "warn",
+        message: "Pattern detection failed during new user registration",
+        requestId,
+        userId: newUser.id,
+        action: "pattern_detection_error",
+        success: false,
+        metadata: {
+          errorMessage:
+            patternError instanceof Error
+              ? patternError.message
+              : "Unknown error",
+        },
+      });
+    }
+
     structuredLogger.logAuth({
       level: "info",
       message: "New user created successfully",
@@ -312,6 +535,36 @@ export async function onAuthenticateUser(): Promise<AuthResponse> {
     };
   } catch (error) {
     const processingTime = Date.now() - startTime;
+
+    // Record failed authentication attempt
+    try {
+      const user = await currentUser();
+      const email = user?.emailAddresses[0]?.emailAddress;
+
+      if (email) {
+        await BruteForceProtection.recordLoginAttempt(email, false, user?.id, {
+          processingTime,
+          errorType: error instanceof Error ? error.name : "UnknownError",
+          errorMessage:
+            error instanceof Error ? error.message : "Unknown error",
+        });
+      }
+    } catch (recordError) {
+      // Don't fail the main error handling due to recording issues
+      structuredLogger.logAuth({
+        level: "warn",
+        message: "Failed to record failed authentication attempt",
+        requestId,
+        action: "record_failed_attempt_error",
+        success: false,
+        metadata: {
+          recordError:
+            recordError instanceof Error
+              ? recordError.message
+              : "Unknown error",
+        },
+      });
+    }
 
     // Handle and classify the error
     const appError = ErrorHandler.handleError(
