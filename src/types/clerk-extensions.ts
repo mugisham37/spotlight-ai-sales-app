@@ -1,18 +1,12 @@
 // Extended Clerk types for MFA functionality
-import { UserResource } from "@clerk/types";
+import { UserResource, TOTPResource as ClerkTOTPResource } from "@clerk/types";
 
-// TOTP Resource interface
-export interface TOTPResource {
-  id: string;
+// Extended TOTP Resource interface that includes Clerk's required properties
+export interface TOTPResource extends ClerkTOTPResource {
   secret?: string;
   uri?: string;
   qrCode?: string;
-  verified: boolean;
   backupCodes?: string[];
-  createdAt: number;
-  updatedAt: number;
-  attemptVerification: (params: { code: string }) => Promise<TOTPResource>;
-  destroy: () => Promise<void>;
 }
 
 // Backup Code Resource interface
@@ -25,7 +19,7 @@ export interface BackupCodeResource {
 }
 
 // Extended User Resource with MFA properties
-export interface ExtendedUserResource extends UserResource {
+export interface ExtendedUserResource extends Omit<UserResource, "createTOTP"> {
   totpResource?: TOTPResource | null;
   backupCodeResource?: BackupCodeResource | null;
   createTOTP: () => Promise<TOTPResource>;
@@ -73,7 +67,7 @@ declare global {
     gtag?: (
       command: string,
       action: string,
-      parameters?: Record<string, any>
+      parameters?: Record<string, unknown>
     ) => void;
   }
 }

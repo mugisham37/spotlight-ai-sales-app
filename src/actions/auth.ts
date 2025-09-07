@@ -2,9 +2,7 @@
 
 import prismaClient from "@/lib/prismaClient";
 import { currentUser } from "@clerk/nextjs/server";
-import { AuthLogger } from "@/lib/auth-logger";
-import { ErrorHandler, ErrorType, ErrorSeverity } from "@/lib/error-handler";
-import { ErrorResponseFormatter, ERROR_CODES } from "@/lib/error-responses";
+import { ErrorResponseFormatter } from "@/lib/error-responses";
 import { structuredLogger } from "@/lib/structured-logger";
 import {
   BruteForceProtection,
@@ -259,8 +257,8 @@ export async function onAuthenticateUser(): Promise<AuthResponse> {
             eventType: "unusual_pattern",
             severity: patternCheck.severity,
             metadata: {
-              patterns: patternCheck.patterns,
-              recommendedActions: patternCheck.recommendedActions,
+              patterns: patternCheck.patterns.join(", "),
+              recommendedActions: patternCheck.recommendedActions.join(", "),
             },
           });
         }
@@ -301,8 +299,8 @@ export async function onAuthenticateUser(): Promise<AuthResponse> {
             eventType: "suspicious_activity",
             severity: securityResult.severity,
             metadata: {
-              reasons: securityResult.reasons,
-              recommendedActions: securityResult.recommendedActions,
+              reasons: securityResult.reasons.join(", "),
+              recommendedActions: securityResult.recommendedActions.join(", "),
             },
           });
         }
@@ -477,8 +475,8 @@ export async function onAuthenticateUser(): Promise<AuthResponse> {
           eventType: "unusual_pattern",
           severity: patternCheck.severity,
           metadata: {
-            patterns: patternCheck.patterns,
-            recommendedActions: patternCheck.recommendedActions,
+            patterns: patternCheck.patterns.join(", "),
+            recommendedActions: patternCheck.recommendedActions.join(", "),
             userType: "new",
           },
         });

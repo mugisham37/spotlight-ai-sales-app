@@ -3,13 +3,12 @@
 import { currentUser } from "@clerk/nextjs/server";
 import { MFAService } from "@/lib/mfa-service";
 import { AuthLogger } from "@/lib/auth-logger";
-import { ErrorResponseFormatter } from "@/lib/error-responses";
 
 interface MFAResponse {
   success: boolean;
   message?: string;
   error?: string;
-  data?: any;
+  data?: unknown;
   requestId?: string;
 }
 
@@ -37,7 +36,7 @@ export async function enableMFA(
     const validation = MFAService.validateMFASetup(secret, backupCodes);
     if (!validation.valid) {
       AuthLogger.warn("MFA setup validation failed", user.id, undefined, {
-        errors: validation.errors,
+        errors: validation.errors.join(", "),
         requestId,
       });
 

@@ -60,6 +60,7 @@ export interface AuthLogEntry extends BaseLogEntry {
     | "login_success"
     | "login_failure"
     | "record_login_attempt_error"
+    | "record_failed_attempt_error"
     | "clear_failed_attempts"
     | "clear_failed_attempts_error"
     | "lock_account_error"
@@ -80,7 +81,24 @@ export interface AuthLogEntry extends BaseLogEntry {
     | "recovery_step_success"
     | "recovery_step_failed"
     | "recovery_complete"
-    | "recovery_failed";
+    | "recovery_failed"
+    | "authenticate_start"
+    | "authenticate_no_user"
+    | "authenticate_brute_force_blocked"
+    | "authenticate_clerk_user_found"
+    | "authenticate_validation_failed"
+    | "authenticate_db_error"
+    | "authenticate_success"
+    | "authenticate_user_creation_failed"
+    | "authenticate_user_creation_null"
+    | "authenticate_user_created"
+    | "authenticate_error"
+    | "pattern_detection_error"
+    | "session_monitoring_error"
+    | "callback_start"
+    | "callback_complete"
+    | "callback_redirect_success"
+    | "callback_error";
   email?: string;
   success: boolean;
   errorCode?: string;
@@ -96,7 +114,10 @@ export interface SecurityLogEntry extends BaseLogEntry {
   ip?: string;
   userAgent?: string;
   path?: string;
-  details?: Record<string, string | number | boolean | Date | null | undefined>;
+  details?: Record<
+    string,
+    string | number | boolean | Date | null | undefined | string[]
+  >;
   sessionId?: string;
 }
 
@@ -138,9 +159,14 @@ export class StructuredLogger {
   }
 
   // Authentication logging methods
-  logAuth(entry: Omit<AuthLogEntry, "component" | "timestamp">): void {
+  logAuth(
+    entry: Omit<AuthLogEntry, "component" | "timestamp"> & {
+      level: LogLevel | string;
+    }
+  ): void {
     const logEntry: AuthLogEntry = {
       ...entry,
+      level: this.normalizeLogLevel(entry.level),
       component: "auth",
       timestamp: new Date(),
     };
@@ -174,9 +200,14 @@ export class StructuredLogger {
   }
 
   // Security event logging
-  logSecurity(entry: Omit<SecurityLogEntry, "component" | "timestamp">): void {
+  logSecurity(
+    entry: Omit<SecurityLogEntry, "component" | "timestamp"> & {
+      level: LogLevel | string;
+    }
+  ): void {
     const logEntry: SecurityLogEntry = {
       ...entry,
+      level: this.normalizeLogLevel(entry.level),
       component: "security",
       timestamp: new Date(),
     };
@@ -483,6 +514,28 @@ export class StructuredLogger {
     }
   }
 
+  private normalizeLogLevel(level: LogLevel | string): LogLevel {
+    if (typeof level === "string") {
+      switch (level.toLowerCase()) {
+        case "debug":
+          return LogLevel.DEBUG;
+        case "info":
+          return LogLevel.INFO;
+        case "warn":
+        case "warning":
+          return LogLevel.WARN;
+        case "error":
+          return LogLevel.ERROR;
+        case "fatal":
+        case "critical":
+          return LogLevel.FATAL;
+        default:
+          return LogLevel.INFO;
+      }
+    }
+    return level;
+  }
+
   private getLogLevelFromSeverity(severity: string): LogLevel {
     switch (severity) {
       case "low":
@@ -596,11 +649,16 @@ export class StructuredLogger {
 export const structuredLogger = StructuredLogger.getInstance();
 
 // Convenience functions for common logging patterns
-export const logAuth = (entry: Omit<AuthLogEntry, "component" | "timestamp">) =>
-  structuredLogger.logAuth(entry);
+export const logAuth = (
+  entry: Omit<AuthLogEntry, "component" | "timestamp"> & {
+    level: LogLevel | string;
+  }
+) => structuredLogger.logAuth(entry);
 
 export const logSecurity = (
-  entry: Omit<SecurityLogEntry, "component" | "timestamp">
+  entry: Omit<SecurityLogEntry, "component" | "timestamp"> & {
+    level: LogLevel | string;
+  }
 ) => structuredLogger.logSecurity(entry);
 
 export const logSystem = (

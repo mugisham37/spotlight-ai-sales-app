@@ -83,7 +83,7 @@ export const MFADeviceManager: React.FC<MFADeviceManagerProps> = ({
       setShowAddDevice(false);
       setDeviceName("");
       toast.success("Device added successfully");
-    } catch (error) {
+    } catch {
       toast.error("Failed to add device");
     } finally {
       setIsLoading(false);
@@ -108,7 +108,7 @@ export const MFADeviceManager: React.FC<MFADeviceManagerProps> = ({
       setShowEditDevice(null);
       setDeviceName("");
       toast.success("Device updated successfully");
-    } catch (error) {
+    } catch {
       toast.error("Failed to update device");
     } finally {
       setIsLoading(false);
@@ -124,7 +124,7 @@ export const MFADeviceManager: React.FC<MFADeviceManagerProps> = ({
 
       setShowDeleteDevice(null);
       toast.success("Device removed successfully");
-    } catch (error) {
+    } catch {
       toast.error("Failed to remove device");
     } finally {
       setIsLoading(false);
@@ -147,7 +147,7 @@ export const MFADeviceManager: React.FC<MFADeviceManagerProps> = ({
       toast.success(
         `Device ${device?.isActive ? "disabled" : "enabled"} successfully`
       );
-    } catch (error) {
+    } catch {
       toast.error("Failed to toggle device");
     } finally {
       setIsLoading(false);
@@ -303,8 +303,8 @@ export const MFADeviceManager: React.FC<MFADeviceManagerProps> = ({
                           <span>Remove MFA Device</span>
                         </DialogTitle>
                         <DialogDescription>
-                          Are you sure you want to remove "{device.name}"? This
-                          action cannot be undone.
+                          Are you sure you want to remove &quot;{device.name}
+                          &quot;? This action cannot be undone.
                         </DialogDescription>
                       </DialogHeader>
                       <Alert>

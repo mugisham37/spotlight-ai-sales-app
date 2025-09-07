@@ -19,6 +19,7 @@ export const ERROR_CODES = {
   AUTH_ACCOUNT_LOCKED: "AUTH_ACCOUNT_LOCKED",
   AUTH_MFA_REQUIRED: "AUTH_MFA_REQUIRED",
   AUTH_MFA_INVALID: "AUTH_MFA_INVALID",
+  ACCOUNT_TEMPORARILY_LOCKED: "ACCOUNT_TEMPORARILY_LOCKED",
 
   // Authorization errors
   ACCESS_DENIED: "ACCESS_DENIED",
@@ -72,6 +73,8 @@ export const ERROR_MESSAGES = {
   [ERROR_CODES.AUTH_MFA_REQUIRED]: "Multi-factor authentication is required.",
   [ERROR_CODES.AUTH_MFA_INVALID]:
     "Invalid verification code. Please try again.",
+  [ERROR_CODES.ACCOUNT_TEMPORARILY_LOCKED]:
+    "Your account has been temporarily locked for security reasons.",
 
   [ERROR_CODES.ACCESS_DENIED]:
     "You don't have permission to access this resource.",

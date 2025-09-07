@@ -1,7 +1,5 @@
 import { onAuthenticateUser } from "@/actions/auth";
 import { redirect } from "next/navigation";
-import { ErrorHandler, ErrorType, ErrorSeverity } from "@/lib/error-handler";
-import { ErrorResponseFormatter } from "@/lib/error-responses";
 import { structuredLogger } from "@/lib/structured-logger";
 
 export const dynamic = "force-dynamic";
