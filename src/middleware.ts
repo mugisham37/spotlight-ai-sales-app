@@ -28,7 +28,6 @@ const isProtectedApiRoute = createRouteMatcher([
 // Rate limiting identifiers
 function getRateLimitIdentifier(req: NextRequest): string {
   const ip =
-    req.ip ||
     req.headers.get("x-forwarded-for") ||
     req.headers.get("x-real-ip") ||
     "unknown";
@@ -39,6 +38,7 @@ function getRateLimitIdentifier(req: NextRequest): string {
 interface MiddlewareError extends Error {
   code?: string;
   status?: number;
+  cause?: unknown;
 }
 
 function createAuthError(
@@ -55,7 +55,6 @@ function createAuthError(
 function getClientInfo(req: NextRequest) {
   return {
     ip:
-      req.ip ||
       req.headers.get("x-forwarded-for") ||
       req.headers.get("x-real-ip") ||
       "unknown",
@@ -150,7 +149,7 @@ export default clerkMiddleware(async (auth, req) => {
         undefined,
         undefined,
         {
-          reasons: securityCheck.reasons,
+          reasons: securityCheck.reasons.join(", "),
           ip: clientInfo.ip,
           userAgent: clientInfo.userAgent,
           requestId,
@@ -158,20 +157,12 @@ export default clerkMiddleware(async (auth, req) => {
       );
     }
 
-    // Apply rate limiting
-    const rateLimitId = getRateLimitIdentifier(req);
-    let rateLimitConfig = RATE_LIMIT_CONFIGS.default;
-
-    // Use stricter rate limiting for auth endpoints
-    if (
-      req.nextUrl.pathname.startsWith("/api/auth") ||
-      req.nextUrl.pathname.includes("sign-in") ||
-      req.nextUrl.pathname.includes("sign-up")
-    ) {
-      rateLimitConfig = RATE_LIMIT_CONFIGS.auth;
-    } else if (isWebhookRoute(req)) {
-      rateLimitConfig = RATE_LIMIT_CONFIGS.webhook;
-    }
+    // Apply enhanced rate limiting
+    const rateLimitConfig = RateLimitManager.getRateLimitConfig(req);
+    const rateLimitId = RateLimitManager.generateRateLimitKey(
+      req,
+      rateLimitConfig.keyGenerator
+    );
 
     const rateLimit = await RateLimitManager.checkRateLimit(
       rateLimitId,
@@ -179,29 +170,52 @@ export default clerkMiddleware(async (auth, req) => {
     );
 
     if (!rateLimit.allowed) {
-      AuthLogger.warn(
-        `Rate limit exceeded for ${req.nextUrl.pathname}`,
-        undefined,
-        undefined,
-        {
-          ip: clientInfo.ip,
-          userAgent: clientInfo.userAgent,
-          requestId,
-          remaining: rateLimit.remaining,
-        }
-      );
+      const logMessage = rateLimit.blocked
+        ? `Rate limit exceeded and blocked for ${req.nextUrl.pathname}`
+        : `Rate limit exceeded for ${req.nextUrl.pathname}`;
+
+      AuthLogger.warn(logMessage, undefined, undefined, {
+        ip: clientInfo.ip,
+        userAgent: clientInfo.userAgent,
+        requestId,
+        remaining: rateLimit.remaining,
+        blocked: rateLimit.blocked,
+        blockUntil: rateLimit.blockUntil,
+      });
+
+      const errorMessage = rateLimit.blocked
+        ? "Too many requests - temporarily blocked"
+        : "Too many requests";
 
       const response = NextResponse.json(
         {
           error: {
-            code: "RATE_LIMIT_EXCEEDED",
-            message: "Too many requests",
+            code: rateLimit.blocked
+              ? "RATE_LIMIT_BLOCKED"
+              : "RATE_LIMIT_EXCEEDED",
+            message: errorMessage,
             requestId,
             timestamp: new Date().toISOString(),
+            retryAfter: rateLimit.blockUntil
+              ? Math.ceil((rateLimit.blockUntil - Date.now()) / 1000)
+              : Math.ceil((rateLimit.resetTime - Date.now()) / 1000),
           },
         },
         { status: 429 }
       );
+
+      // Add Retry-After header
+      if (rateLimit.blockUntil) {
+        response.headers.set(
+          "Retry-After",
+          Math.ceil((rateLimit.blockUntil - Date.now()) / 1000).toString()
+        );
+      } else {
+        response.headers.set(
+          "Retry-After",
+          Math.ceil((rateLimit.resetTime - Date.now()) / 1000).toString()
+        );
+      }
 
       const rateLimitedResponse = RateLimitManager.addRateLimitHeaders(
         response,
