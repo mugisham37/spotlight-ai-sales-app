@@ -1,6 +1,13 @@
 // Error response formatting utilities for consistent API responses
 import { NextResponse } from "next/server";
-import { AppError, ErrorType, ErrorSeverity } from "./error-handler";
+import {
+  AppError,
+  AuthenticationError,
+  AuthorizationError,
+  ValidationError,
+  SecurityError,
+  SystemError,
+} from "./error-handler";
 
 // Standard error codes for authentication system
 export const ERROR_CODES = {
@@ -124,7 +131,7 @@ export interface StandardErrorResponse {
     requestId: string;
     details?: {
       field?: string;
-      value?: any;
+      value?: string | number | boolean | null;
       constraint?: string;
       suggestion?: string;
     };
@@ -137,7 +144,7 @@ export interface StandardErrorResponse {
 }
 
 // Success response interface for consistency
-export interface StandardSuccessResponse<T = any> {
+export interface StandardSuccessResponse<T = unknown> {
   success: true;
   data: T;
   message?: string;
@@ -166,7 +173,12 @@ export class ErrorResponseFormatter {
     if (process.env.NODE_ENV === "development" && error.metadata) {
       response.error.details = {
         field: error.metadata.field as string,
-        value: error.metadata.value,
+        value: error.metadata.value as
+          | string
+          | number
+          | boolean
+          | null
+          | undefined,
         constraint: error.metadata.constraint as string,
         suggestion: error.metadata.suggestion as string,
       };
@@ -319,13 +331,11 @@ export class ErrorResponseFormatter {
   // Create validation error with field details
   static createValidationError(
     field: string,
-    value: any,
+    value: string | number | boolean | null | undefined,
     constraint: string,
     suggestion?: string,
     requestId?: string
   ): AppError {
-    const { ValidationError } = require("./error-handler");
-
     return new ValidationError(
       ERROR_CODES.VALIDATION_FAILED,
       ERROR_MESSAGES[ERROR_CODES.VALIDATION_FAILED],
@@ -345,10 +355,11 @@ export class ErrorResponseFormatter {
     code: keyof typeof ERROR_CODES,
     requestId?: string,
     userId?: string,
-    metadata?: Record<string, any>
+    metadata?: Record<
+      string,
+      string | number | boolean | Date | null | undefined
+    >
   ): AppError {
-    const { AuthenticationError } = require("./error-handler");
-
     return new AuthenticationError(
       ERROR_CODES[code],
       ERROR_MESSAGES[ERROR_CODES[code]],
@@ -364,10 +375,11 @@ export class ErrorResponseFormatter {
     code: keyof typeof ERROR_CODES,
     requestId?: string,
     userId?: string,
-    metadata?: Record<string, any>
+    metadata?: Record<
+      string,
+      string | number | boolean | Date | null | undefined
+    >
   ): AppError {
-    const { AuthorizationError } = require("./error-handler");
-
     return new AuthorizationError(
       ERROR_CODES[code],
       ERROR_MESSAGES[ERROR_CODES[code]],
@@ -383,10 +395,11 @@ export class ErrorResponseFormatter {
     code: keyof typeof ERROR_CODES,
     requestId?: string,
     userId?: string,
-    metadata?: Record<string, any>
+    metadata?: Record<
+      string,
+      string | number | boolean | Date | null | undefined
+    >
   ): AppError {
-    const { SecurityError } = require("./error-handler");
-
     return new SecurityError(
       ERROR_CODES[code],
       ERROR_MESSAGES[ERROR_CODES[code]],
@@ -402,10 +415,11 @@ export class ErrorResponseFormatter {
     code: keyof typeof ERROR_CODES,
     requestId?: string,
     userId?: string,
-    metadata?: Record<string, any>
+    metadata?: Record<
+      string,
+      string | number | boolean | Date | null | undefined
+    >
   ): AppError {
-    const { SystemError } = require("./error-handler");
-
     return new SystemError(
       ERROR_CODES[code],
       ERROR_MESSAGES[ERROR_CODES[code]],
@@ -419,14 +433,25 @@ export class ErrorResponseFormatter {
 
 // Utility function to check if response is an error
 export function isErrorResponse(
-  response: any
+  response: unknown
 ): response is StandardErrorResponse {
-  return response && typeof response === "object" && "error" in response;
+  return (
+    response !== null &&
+    typeof response === "object" &&
+    response !== null &&
+    "error" in response
+  );
 }
 
 // Utility function to check if response is success
 export function isSuccessResponse(
-  response: any
+  response: unknown
 ): response is StandardSuccessResponse {
-  return response && typeof response === "object" && response.success === true;
+  return (
+    response !== null &&
+    typeof response === "object" &&
+    response !== null &&
+    "success" in response &&
+    (response as StandardSuccessResponse).success === true
+  );
 }

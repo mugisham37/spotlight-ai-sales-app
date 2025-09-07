@@ -462,7 +462,11 @@ export class RateLimitManager {
 
   static async checkRateLimit(
     identifier: string,
-    config: any
+    config: {
+      windowMs: number;
+      maxRequests: number;
+      blockDuration?: number;
+    }
   ): Promise<{
     allowed: boolean;
     remaining: number;

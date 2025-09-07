@@ -5,6 +5,7 @@ import {
   ErrorContext,
   AppError,
 } from "./error-handler";
+import type { BaseMetadata, SecurityEventType } from "./types";
 
 // Log entry structure for different contexts
 export interface BaseLogEntry {
@@ -14,7 +15,7 @@ export interface BaseLogEntry {
   component: string;
   requestId: string;
   userId?: string;
-  metadata?: Record<string, unknown>;
+  metadata?: BaseMetadata;
 }
 
 export interface AuthLogEntry extends BaseLogEntry {
@@ -65,26 +66,12 @@ export interface AuthLogEntry extends BaseLogEntry {
 
 export interface SecurityLogEntry extends BaseLogEntry {
   component: "security";
-  eventType:
-    | "suspicious_activity"
-    | "rate_limit"
-    | "blocked_request"
-    | "invalid_signature"
-    | "brute_force"
-    | "emergency_cleanup"
-    | "suspicious_login"
-    | "multiple_failed_attempts"
-    | "session_hijack_attempt"
-    | "concurrent_session_limit"
-    | "ip_location_change"
-    | "device_fingerprint_mismatch"
-    | "unusual_activity_pattern"
-    | "multiple_sessions";
+  eventType: SecurityEventType;
   severity: "low" | "medium" | "high" | "critical";
   ip?: string;
   userAgent?: string;
   path?: string;
-  details?: Record<string, unknown>;
+  details?: Record<string, string | number | boolean | Date | null | undefined>;
   sessionId?: string;
 }
 
@@ -192,7 +179,7 @@ export class StructuredLogger {
       {
         eventType: entry.eventType,
         severity: entry.severity,
-        details: entry.details,
+        detailsCount: entry.details ? Object.keys(entry.details).length : 0,
       }
     );
   }
@@ -285,7 +272,7 @@ export class StructuredLogger {
     component: string,
     requestId: string,
     userId?: string,
-    metadata?: Record<string, unknown>
+    metadata?: BaseMetadata
   ): void {
     if (process.env.NODE_ENV === "development") {
       const entry: BaseLogEntry = {
@@ -308,7 +295,7 @@ export class StructuredLogger {
     component: string,
     requestId: string,
     userId?: string,
-    metadata?: Record<string, unknown>
+    metadata?: BaseMetadata
   ): void {
     const entry: BaseLogEntry = {
       level: LogLevel.INFO,
@@ -329,7 +316,7 @@ export class StructuredLogger {
     component: string,
     requestId: string,
     userId?: string,
-    metadata?: Record<string, unknown>
+    metadata?: BaseMetadata
   ): void {
     const entry: BaseLogEntry = {
       level: LogLevel.WARN,
@@ -351,7 +338,7 @@ export class StructuredLogger {
     requestId: string,
     error?: Error | AppError,
     userId?: string,
-    metadata?: Record<string, unknown>
+    metadata?: BaseMetadata
   ): void {
     const entry: BaseLogEntry = {
       level: LogLevel.ERROR,
@@ -384,7 +371,7 @@ export class StructuredLogger {
     duration: number,
     success: boolean,
     userId?: string,
-    metadata?: Record<string, unknown>
+    metadata?: BaseMetadata
   ): void {
     const level = success ? LogLevel.INFO : LogLevel.WARN;
     const message = `${operation} completed in ${duration}ms`;
@@ -606,7 +593,7 @@ export const logPerformance = (
   duration: number,
   success: boolean,
   userId?: string,
-  metadata?: Record<string, unknown>
+  metadata?: BaseMetadata
 ) =>
   structuredLogger.logPerformance(
     operation,

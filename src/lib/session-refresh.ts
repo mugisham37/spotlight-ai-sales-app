@@ -368,7 +368,7 @@ export async function isSessionExpiringSoon(
 
     const timeRemaining = sessionInfo.expiresAt.getTime() - Date.now();
     return timeRemaining > 0 && timeRemaining <= warningThreshold;
-  } catch (_error) {
+  } catch {
     return false;
   }
 }

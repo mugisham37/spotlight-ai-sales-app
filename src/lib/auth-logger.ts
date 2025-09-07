@@ -1,4 +1,6 @@
 // Authentication logging utility with enhanced monitoring integration
+import type { BaseMetadata } from "./types";
+
 export interface AuthLogEntry {
   level: "info" | "warn" | "error";
   message: string;
@@ -6,10 +8,7 @@ export interface AuthLogEntry {
   email?: string;
   timestamp: Date;
   requestId?: string;
-  metadata?: Record<
-    string,
-    string | number | boolean | Date | null | undefined
-  >;
+  metadata?: BaseMetadata;
 }
 
 export class AuthLogger {
@@ -59,10 +58,7 @@ export class AuthLogger {
     message: string,
     userId?: string,
     email?: string,
-    metadata?: Record<
-      string,
-      string | number | boolean | Date | null | undefined
-    >
+    metadata?: BaseMetadata
   ) {
     const entry: AuthLogEntry = {
       level: "info",
@@ -80,10 +76,7 @@ export class AuthLogger {
     message: string,
     userId?: string,
     email?: string,
-    metadata?: Record<
-      string,
-      string | number | boolean | Date | null | undefined
-    >
+    metadata?: BaseMetadata
   ) {
     const entry: AuthLogEntry = {
       level: "warn",
@@ -102,10 +95,7 @@ export class AuthLogger {
     error?: Error,
     userId?: string,
     email?: string,
-    metadata?: Record<
-      string,
-      string | number | boolean | Date | null | undefined
-    >
+    metadata?: BaseMetadata
   ) {
     const entry: AuthLogEntry = {
       level: "error",
@@ -151,7 +141,7 @@ export class AuthLogger {
     userId?: string,
     email?: string,
     requestId?: string,
-    metadata?: Record<string, unknown>
+    metadata?: BaseMetadata
   ): AuthLogEntry {
     return {
       level,

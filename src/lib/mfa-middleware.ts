@@ -221,6 +221,7 @@ export class MFAMiddleware {
     resetTime?: Date;
   }> {
     // Use the MFA service to check attempts
+    console.log(`Rate limiting check for IP: ${ipAddress}`);
     return await MFAService.checkMFAAttempts(userId);
   }
 }

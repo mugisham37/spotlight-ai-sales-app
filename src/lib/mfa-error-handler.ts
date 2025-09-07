@@ -7,7 +7,10 @@ export interface MFAError {
   severity: "low" | "medium" | "high" | "critical";
   recoverable: boolean;
   suggestedActions: string[];
-  metadata?: Record<string, any>;
+  metadata?: Record<
+    string,
+    string | number | boolean | Date | null | undefined
+  >;
 }
 
 export interface MFAErrorContext {
@@ -237,7 +240,10 @@ export class MFAErrorHandler {
     errorCode: string,
     context: MFAErrorContext,
     originalError?: Error,
-    additionalMetadata?: Record<string, any>
+    additionalMetadata?: Record<
+      string,
+      string | number | boolean | Date | null | undefined
+    >
   ): MFAError {
     const errorDef =
       this.ERROR_DEFINITIONS[errorCode] ||
@@ -268,7 +274,10 @@ export class MFAErrorHandler {
     errorCode: string,
     context: MFAErrorContext,
     originalError?: Error,
-    additionalMetadata?: Record<string, any>
+    additionalMetadata?: Record<
+      string,
+      string | number | boolean | Date | null | undefined
+    >
   ): {
     success: false;
     error: string;
@@ -297,7 +306,14 @@ export class MFAErrorHandler {
   /**
    * Handle Clerk-specific MFA errors
    */
-  static handleClerkError(clerkError: any, context: MFAErrorContext): MFAError {
+  static handleClerkError(
+    clerkError: {
+      errors?: Array<{ code?: string; message?: string }>;
+      code?: string;
+      message?: string;
+    },
+    context: MFAErrorContext
+  ): MFAError {
     // Map common Clerk error codes to our MFA error codes
     const clerkErrorCode = clerkError?.errors?.[0]?.code || clerkError?.code;
     const clerkMessage =
@@ -333,10 +349,14 @@ export class MFAErrorHandler {
         break;
     }
 
-    return this.handleError(mfaErrorCode, context, clerkError, {
+    // Create a proper Error object from the Clerk error
+    const errorObj = new Error(clerkMessage);
+    errorObj.name = "ClerkError";
+
+    return this.handleError(mfaErrorCode, context, errorObj, {
       clerkErrorCode,
       clerkMessage,
-      clerkErrors: clerkError?.errors,
+      clerkErrorsCount: clerkError?.errors?.length || 0,
     });
   }
 
@@ -359,7 +379,7 @@ export class MFAErrorHandler {
       ipAddress: context.ipAddress,
       userAgent: context.userAgent,
       requestId: context.requestId,
-      suggestedActions: mfaError.suggestedActions,
+      suggestedActionsCount: mfaError.suggestedActions.length,
       ...mfaError.metadata,
     };
 

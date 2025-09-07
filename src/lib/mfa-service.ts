@@ -1,7 +1,7 @@
 import { User } from "@clerk/nextjs/server";
 import { PrismaClient } from "@prisma/client";
 import { AuthLogger } from "./auth-logger";
-import { AuditTrail, AuditEventType } from "./audit-trail";
+import { AuditTrail, AuditSeverity } from "./audit-trail";
 import { MFASecurityLogger } from "./mfa-security-logger";
 
 const prisma = new PrismaClient();
@@ -49,12 +49,18 @@ export class MFAService {
 
       // Create audit trail entry
       AuditTrail.logSecurityEvent(
-        AuditEventType.MFA_ENABLED,
-        clerkUser.id,
-        true,
+        "mfa_enabled",
+        AuditSeverity.MEDIUM,
+        "MFA enabled for user",
         {
-          method: "totp",
-          backupCodesGenerated: backupCodes.length,
+          requestId: crypto.randomUUID(),
+          userId: clerkUser.id,
+          ip: "unknown",
+          userAgent: "unknown",
+          details: {
+            method: "totp",
+            backupCodesGenerated: backupCodes.length,
+          },
         }
       );
 
@@ -102,11 +108,17 @@ export class MFAService {
 
       // Create audit trail entry
       AuditTrail.logSecurityEvent(
-        AuditEventType.MFA_DISABLED,
-        clerkUser.id,
-        true,
+        "mfa_disabled",
+        AuditSeverity.MEDIUM,
+        "MFA disabled for user",
         {
-          method: "totp",
+          requestId: crypto.randomUUID(),
+          userId: clerkUser.id,
+          ip: "unknown",
+          userAgent: "unknown",
+          details: {
+            method: "totp",
+          },
         }
       );
 
@@ -211,12 +223,18 @@ export class MFAService {
 
       // Create audit trail entry
       AuditTrail.logSecurityEvent(
-        AuditEventType.MFA_VERIFIED,
-        clerkUser.id,
-        success,
+        success ? "mfa_verification_success" : "mfa_verification_failed",
+        success ? AuditSeverity.LOW : AuditSeverity.MEDIUM,
+        `MFA verification ${success ? "successful" : "failed"}`,
         {
-          method,
-          error: error || undefined,
+          requestId: crypto.randomUUID(),
+          userId: clerkUser.id,
+          ip: "unknown",
+          userAgent: "unknown",
+          details: {
+            method,
+            error: error || undefined,
+          },
         }
       );
 
@@ -355,10 +373,10 @@ export class MFAService {
     // In production, you'd want to use a proper rate limiting solution
 
     const maxAttempts = 5;
-    const windowMinutes = 15;
 
     // This is a simplified implementation
     // In production, you'd use Redis with sliding window rate limiting
+    console.log(`Checking MFA attempts for user: ${clerkUserId}`);
     return {
       allowed: true,
       attemptsRemaining: maxAttempts,

@@ -16,7 +16,10 @@ export interface RequestLogEntry {
   responseSize?: number;
   rateLimitRemaining?: number;
   securityFlags: string[];
-  metadata?: Record<string, any>;
+  metadata?: Record<
+    string,
+    string | number | boolean | Date | null | undefined
+  >;
 }
 
 export interface SecurityEvent {
@@ -35,7 +38,10 @@ export interface SecurityEvent {
   userAgent: string;
   path: string;
   description: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<
+    string,
+    string | number | boolean | Date | null | undefined
+  >;
 }
 
 export interface PerformanceMetrics {
@@ -68,7 +74,10 @@ export interface AuthenticationEvent {
   userAgent: string;
   success: boolean;
   errorCode?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<
+    string,
+    string | number | boolean | Date | null | undefined
+  >;
 }
 
 // Enhanced monitoring class with comprehensive logging capabilities
@@ -187,7 +196,10 @@ export class RequestMonitor {
     requestId: string,
     description: string,
     userId?: string,
-    metadata?: Record<string, any>
+    metadata?: Record<
+      string,
+      string | number | boolean | Date | null | undefined
+    >
   ): void {
     const securityEvent: SecurityEvent = {
       id: crypto.randomUUID(),
@@ -240,7 +252,10 @@ export class RequestMonitor {
     userId?: string,
     email?: string,
     errorCode?: string,
-    metadata?: Record<string, any>
+    metadata?: Record<
+      string,
+      string | number | boolean | Date | null | undefined
+    >
   ): void {
     const authEvent: AuthenticationEvent = {
       id: crypto.randomUUID(),
@@ -468,7 +483,7 @@ export class RequestMonitor {
         const memory = process.memoryUsage();
         memoryUsage = memory.heapUsed;
       }
-    } catch (error) {
+    } catch {
       // Edge Runtime doesn't support process.memoryUsage()
       memoryUsage = 0;
     }
@@ -477,7 +492,7 @@ export class RequestMonitor {
       if (typeof process !== "undefined" && process.uptime) {
         uptime = process.uptime();
       }
-    } catch (error) {
+    } catch {
       // Edge Runtime doesn't support process.uptime()
       uptime = 0;
     }
@@ -549,7 +564,7 @@ export class RequestMonitor {
   static exportLogs(
     type: "requests" | "security" | "performance" | "auth" | "all" = "all"
   ): string {
-    const exportData: unknown = {};
+    const exportData: Record<string, unknown> = {};
 
     if (type === "requests" || type === "all") {
       exportData.requestLogs = this.requestLogs;

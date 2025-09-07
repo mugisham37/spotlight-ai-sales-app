@@ -1,5 +1,5 @@
 import { AuthLogger } from "./auth-logger";
-import { AuditTrail, AuditEventType } from "./audit-trail";
+import { AuditTrail, AuditSeverity } from "./audit-trail";
 
 export interface MFAValidationResult {
   isValid: boolean;
@@ -222,13 +222,22 @@ export class MFASecurityValidator {
     });
 
     // Create audit trail entry
-    AuditTrail.logSecurityEvent(AuditEventType.MFA_VERIFIED, userId, false, {
-      method: attemptType,
-      error,
-      attemptCount: attempts.count,
-      ipAddress: context.ipAddress,
-      userAgent: context.userAgent,
-    });
+    AuditTrail.logSecurityEvent(
+      "mfa_verification_failed",
+      AuditSeverity.MEDIUM,
+      `MFA verification failed: ${error}`,
+      {
+        requestId: crypto.randomUUID(),
+        userId,
+        ip: context.ipAddress,
+        userAgent: context.userAgent,
+        details: {
+          method: attemptType,
+          error,
+          attemptCount: attempts.count,
+        },
+      }
+    );
   }
 
   /**
@@ -248,11 +257,20 @@ export class MFASecurityValidator {
     });
 
     // Create audit trail entry
-    AuditTrail.logSecurityEvent(AuditEventType.MFA_VERIFIED, userId, true, {
-      method: attemptType,
-      ipAddress: context.ipAddress,
-      userAgent: context.userAgent,
-    });
+    AuditTrail.logSecurityEvent(
+      "mfa_verification_success",
+      AuditSeverity.LOW,
+      `MFA verification successful`,
+      {
+        requestId: crypto.randomUUID(),
+        userId,
+        ip: context.ipAddress,
+        userAgent: context.userAgent,
+        details: {
+          method: attemptType,
+        },
+      }
+    );
   }
 
   /**
@@ -394,7 +412,10 @@ export class MFASecurityValidator {
   private static logSecurityEvent(
     eventType: string,
     context: MFASecurityContext,
-    metadata: Record<string, any> = {}
+    metadata: Record<
+      string,
+      string | number | boolean | Date | null | undefined
+    > = {}
   ): void {
     AuthLogger.warn(
       `MFA security event: ${eventType}`,

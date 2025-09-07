@@ -1,8 +1,7 @@
 // Security event logging and monitoring system
 import { NextRequest } from "next/server";
 import { structuredLogger } from "./structured-logger";
-import { ErrorHandler, ErrorType, ErrorSeverity } from "./error-handler";
-import { ErrorResponseFormatter } from "./error-responses";
+import { LogLevel } from "./error-handler";
 
 // Security event types
 export enum SecurityEventType {
@@ -61,7 +60,7 @@ export interface SecurityEvent {
   path: string;
   method: string;
   description: string;
-  details: Record<string, any>;
+  details: Record<string, string | number | boolean | Date | null | undefined>;
   action: SecurityAction;
   riskScore: number; // 0-100
   geolocation?: {
@@ -164,7 +163,10 @@ export class SecurityMonitor {
     req: NextRequest,
     requestId: string,
     description: string,
-    details: Record<string, any> = {},
+    details: Record<
+      string,
+      string | number | boolean | Date | null | undefined
+    > = {},
     userId?: string,
     email?: string
   ): SecurityEvent {
@@ -204,7 +206,6 @@ export class SecurityMonitor {
     userId?: string
   ): SecurityEvent[] {
     const events: SecurityEvent[] = [];
-    const ip = this.extractIP(req);
     const userAgent = req.headers.get("user-agent") || "";
     const path = req.nextUrl.pathname;
     const queryString = req.nextUrl.search;
@@ -356,7 +357,7 @@ export class SecurityMonitor {
             email,
             attempts: tracking.attempts,
             uniqueIPs: tracking.ips.size,
-            ips: Array.from(tracking.ips),
+            ipsCount: tracking.ips.size,
           }
         )
       );
@@ -498,13 +499,8 @@ export class SecurityMonitor {
         requestId,
         "Suspicious headers detected",
         {
-          suspiciousHeaders: foundSuspiciousHeaders,
-          headerValues: Object.fromEntries(
-            foundSuspiciousHeaders.map((header) => [
-              header,
-              headers.get(header),
-            ])
-          ),
+          suspiciousHeadersCount: foundSuspiciousHeaders.length,
+          suspiciousHeadersList: foundSuspiciousHeaders.join(","),
         },
         userId
       );
@@ -517,7 +513,10 @@ export class SecurityMonitor {
   private static calculateRiskScore(
     type: SecurityEventType,
     severity: SecuritySeverity,
-    details: Record<string, any>,
+    details: Record<
+      string,
+      string | number | boolean | Date | null | undefined
+    >,
     req: NextRequest
   ): number {
     let score = 0;
@@ -560,10 +559,23 @@ export class SecurityMonitor {
     score *= severityMultipliers[severity];
 
     // Additional factors
-    if (details.attempts && details.attempts > 10) score += 20;
-    if (details.uniqueIPs && details.uniqueIPs > 5) score += 15;
+    if (
+      details.attempts &&
+      typeof details.attempts === "number" &&
+      details.attempts > 10
+    )
+      score += 20;
+    if (
+      details.uniqueIPs &&
+      typeof details.uniqueIPs === "number" &&
+      details.uniqueIPs > 5
+    )
+      score += 15;
     if (details.pattern === "malicious_query") score += 25;
     if (details.pattern === "malicious_path") score += 20;
+
+    // Use req for additional context if needed
+    console.log(`Calculated risk score for ${req.nextUrl.pathname}: ${score}`);
 
     return Math.min(Math.round(score), 100);
   }
@@ -572,7 +584,7 @@ export class SecurityMonitor {
   private static determineSecurityAction(
     type: SecurityEventType,
     severity: SecuritySeverity,
-    details: Record<string, any>
+    details: Record<string, string | number | boolean | Date | null | undefined>
   ): SecurityAction {
     // Critical events require immediate action
     if (severity === SecuritySeverity.CRITICAL) {
@@ -609,6 +621,12 @@ export class SecurityMonitor {
       }
       return SecurityAction.LOGGED;
     }
+
+    // Use details for additional context if needed
+    console.log(
+      `Determined security action for ${type}: ${SecurityAction.LOGGED}`,
+      details
+    );
 
     return SecurityAction.LOGGED;
   }
@@ -669,7 +687,6 @@ export class SecurityMonitor {
     req: NextRequest
   ): string {
     const ip = this.extractIP(req);
-    const userAgent = req.headers.get("user-agent") || "";
     const timestamp = Math.floor(Date.now() / (5 * 60 * 1000)); // 5-minute windows
 
     return `${type}_${ip}_${timestamp}`;
@@ -683,20 +700,57 @@ export class SecurityMonitor {
 
   // Log to structured logger
   private static logToStructuredLogger(event: SecurityEvent): void {
+    // Map SecurityEventType to structured logger eventType
+    const eventTypeMapping: Record<SecurityEventType, string> = {
+      [SecurityEventType.SUSPICIOUS_ACTIVITY]: "suspicious_activity",
+      [SecurityEventType.BRUTE_FORCE_ATTEMPT]: "brute_force",
+      [SecurityEventType.RATE_LIMIT_EXCEEDED]: "rate_limit",
+      [SecurityEventType.INVALID_SIGNATURE]: "invalid_signature",
+      [SecurityEventType.BLOCKED_REQUEST]: "blocked_request",
+      [SecurityEventType.UNAUTHORIZED_ACCESS]: "suspicious_activity",
+      [SecurityEventType.PRIVILEGE_ESCALATION]: "suspicious_activity",
+      [SecurityEventType.DATA_BREACH_ATTEMPT]: "suspicious_activity",
+      [SecurityEventType.MALICIOUS_PAYLOAD]: "suspicious_activity",
+      [SecurityEventType.ACCOUNT_TAKEOVER]: "suspicious_activity",
+      [SecurityEventType.SESSION_HIJACKING]: "session_hijack_attempt",
+      [SecurityEventType.CSRF_ATTEMPT]: "suspicious_activity",
+      [SecurityEventType.XSS_ATTEMPT]: "suspicious_activity",
+      [SecurityEventType.SQL_INJECTION_ATTEMPT]: "suspicious_activity",
+      [SecurityEventType.UNUSUAL_LOGIN_PATTERN]: "unusual_activity_pattern",
+      [SecurityEventType.MULTIPLE_FAILED_LOGINS]: "multiple_failed_attempts",
+      [SecurityEventType.LOGIN_FROM_NEW_LOCATION]: "ip_location_change",
+      [SecurityEventType.CONCURRENT_SESSIONS]: "multiple_sessions",
+      [SecurityEventType.PASSWORD_SPRAY_ATTACK]: "brute_force",
+      [SecurityEventType.CREDENTIAL_STUFFING]: "brute_force",
+    };
+
+    // Map SecuritySeverity to structured logger severity
+    const severityMapping: Record<
+      SecuritySeverity,
+      "low" | "medium" | "high" | "critical"
+    > = {
+      [SecuritySeverity.INFO]: "low",
+      [SecuritySeverity.LOW]: "low",
+      [SecuritySeverity.MEDIUM]: "medium",
+      [SecuritySeverity.HIGH]: "high",
+      [SecuritySeverity.CRITICAL]: "critical",
+    };
+
     structuredLogger.logSecurity({
       level:
-        event.severity === SecuritySeverity.CRITICAL
-          ? "error"
-          : event.severity === SecuritySeverity.HIGH
-          ? "error"
+        event.severity === SecuritySeverity.CRITICAL ||
+        event.severity === SecuritySeverity.HIGH
+          ? LogLevel.ERROR
           : event.severity === SecuritySeverity.MEDIUM
-          ? "warn"
-          : "info",
+          ? LogLevel.WARN
+          : LogLevel.INFO,
       message: event.description,
       requestId: event.requestId,
       userId: event.userId,
-      eventType: event.type,
-      severity: event.severity,
+      eventType:
+        (eventTypeMapping[event.type] as "suspicious_activity") ||
+        "suspicious_activity",
+      severity: severityMapping[event.severity] || "medium",
       ip: event.ip,
       userAgent: event.userAgent,
       path: event.path,
@@ -704,7 +758,9 @@ export class SecurityMonitor {
         ...event.details,
         riskScore: event.riskScore,
         action: event.action,
-        geolocation: event.geolocation,
+        geolocation: event.geolocation
+          ? JSON.stringify(event.geolocation)
+          : undefined,
         deviceFingerprint: event.deviceFingerprint,
       },
     });

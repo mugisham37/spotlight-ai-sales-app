@@ -1,5 +1,6 @@
 // Centralized error handling system for production-grade authentication
 import { NextRequest, NextResponse } from "next/server";
+import type { BaseMetadata } from "./types";
 
 // Error classification types
 export enum ErrorType {
@@ -38,7 +39,7 @@ export interface AppError extends Error {
   code: string;
   statusCode: number;
   userMessage: string;
-  metadata?: Record<string, any>;
+  metadata?: BaseMetadata;
   requestId?: string;
   userId?: string;
   timestamp: Date;
@@ -55,7 +56,7 @@ export interface ErrorContext {
   path?: string;
   method?: string;
   timestamp: Date;
-  metadata?: Record<string, any>;
+  metadata?: BaseMetadata;
 }
 
 export interface LogEntry {
@@ -63,7 +64,7 @@ export interface LogEntry {
   message: string;
   context: ErrorContext;
   error?: AppError | Error;
-  metadata?: Record<string, any>;
+  metadata?: BaseMetadata;
   timestamp: Date;
 }
 
@@ -75,7 +76,14 @@ export interface ErrorResponse {
     severity: string;
     timestamp: string;
     requestId: string;
-    details?: any;
+    details?: {
+      stack?: string;
+      cause?: string;
+      metadata?: Record<
+        string,
+        string | number | boolean | Date | null | undefined
+      >;
+    };
   };
 }
 
@@ -90,7 +98,10 @@ export class AuthenticationError extends Error implements AppError {
     public code: string,
     public userMessage: string,
     message?: string,
-    public metadata?: Record<string, any>,
+    public metadata?: Record<
+      string,
+      string | number | boolean | Date | null | undefined
+    >,
     public requestId?: string,
     public userId?: string,
     public cause?: Error
@@ -114,7 +125,10 @@ export class AuthorizationError extends Error implements AppError {
     public code: string,
     public userMessage: string,
     message?: string,
-    public metadata?: Record<string, any>,
+    public metadata?: Record<
+      string,
+      string | number | boolean | Date | null | undefined
+    >,
     public requestId?: string,
     public userId?: string,
     public cause?: Error
@@ -138,7 +152,10 @@ export class ValidationError extends Error implements AppError {
     public code: string,
     public userMessage: string,
     message?: string,
-    public metadata?: Record<string, any>,
+    public metadata?: Record<
+      string,
+      string | number | boolean | Date | null | undefined
+    >,
     public requestId?: string,
     public userId?: string,
     public cause?: Error
@@ -162,7 +179,10 @@ export class SecurityError extends Error implements AppError {
     public code: string,
     public userMessage: string,
     message?: string,
-    public metadata?: Record<string, any>,
+    public metadata?: Record<
+      string,
+      string | number | boolean | Date | null | undefined
+    >,
     public requestId?: string,
     public userId?: string,
     public cause?: Error
@@ -186,7 +206,10 @@ export class SystemError extends Error implements AppError {
     public code: string,
     public userMessage: string,
     message?: string,
-    public metadata?: Record<string, any>,
+    public metadata?: Record<
+      string,
+      string | number | boolean | Date | null | undefined
+    >,
     public requestId?: string,
     public userId?: string,
     public cause?: Error
@@ -212,7 +235,10 @@ export class ErrorHandler {
     requestId: string,
     userId?: string,
     email?: string,
-    metadata?: Record<string, any>
+    metadata?: Record<
+      string,
+      string | number | boolean | Date | null | undefined
+    >
   ): ErrorContext {
     return {
       requestId,
@@ -236,7 +262,10 @@ export class ErrorHandler {
     message: string,
     context: ErrorContext,
     error?: AppError | Error,
-    metadata?: Record<string, any>
+    metadata?: Record<
+      string,
+      string | number | boolean | Date | null | undefined
+    >
   ): void {
     const logEntry: LogEntry = {
       level,
@@ -265,7 +294,10 @@ export class ErrorHandler {
   static debug(
     message: string,
     context: ErrorContext,
-    metadata?: Record<string, any>
+    metadata?: Record<
+      string,
+      string | number | boolean | Date | null | undefined
+    >
   ): void {
     this.log(LogLevel.DEBUG, message, context, undefined, metadata);
   }
@@ -273,7 +305,10 @@ export class ErrorHandler {
   static info(
     message: string,
     context: ErrorContext,
-    metadata?: Record<string, any>
+    metadata?: Record<
+      string,
+      string | number | boolean | Date | null | undefined
+    >
   ): void {
     this.log(LogLevel.INFO, message, context, undefined, metadata);
   }
@@ -282,7 +317,10 @@ export class ErrorHandler {
     message: string,
     context: ErrorContext,
     error?: Error,
-    metadata?: Record<string, any>
+    metadata?: Record<
+      string,
+      string | number | boolean | Date | null | undefined
+    >
   ): void {
     this.log(LogLevel.WARN, message, context, error, metadata);
   }
@@ -291,7 +329,10 @@ export class ErrorHandler {
     message: string,
     context: ErrorContext,
     error?: Error,
-    metadata?: Record<string, any>
+    metadata?: Record<
+      string,
+      string | number | boolean | Date | null | undefined
+    >
   ): void {
     this.log(LogLevel.ERROR, message, context, error, metadata);
   }
@@ -300,7 +341,10 @@ export class ErrorHandler {
     message: string,
     context: ErrorContext,
     error?: Error,
-    metadata?: Record<string, any>
+    metadata?: Record<
+      string,
+      string | number | boolean | Date | null | undefined
+    >
   ): void {
     this.log(LogLevel.FATAL, message, context, error, metadata);
   }
@@ -481,14 +525,20 @@ export class ErrorHandler {
   }
 
   // Utility methods
-  private static isAppError(error: any): error is AppError {
+  private static isAppError(error: unknown): error is AppError {
     return (
-      error &&
-      typeof error.type === "string" &&
-      typeof error.severity === "string" &&
-      typeof error.code === "string" &&
-      typeof error.statusCode === "number" &&
-      typeof error.userMessage === "string"
+      error !== null &&
+      typeof error === "object" &&
+      "type" in error &&
+      "severity" in error &&
+      "code" in error &&
+      "statusCode" in error &&
+      "userMessage" in error &&
+      typeof (error as AppError).type === "string" &&
+      typeof (error as AppError).severity === "string" &&
+      typeof (error as AppError).code === "string" &&
+      typeof (error as AppError).statusCode === "number" &&
+      typeof (error as AppError).userMessage === "string"
     );
   }
 

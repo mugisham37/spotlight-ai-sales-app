@@ -1,5 +1,6 @@
 // Audit trail system for authentication and authorization events
 import { structuredLogger } from "./structured-logger";
+import type { BaseMetadata } from "./types";
 
 // Audit event types
 export enum AuditEventType {
@@ -81,7 +82,7 @@ export interface AuditEvent {
   resource?: string;
   action: string;
   description: string;
-  details: Record<string, any>;
+  details: BaseMetadata;
   metadata: {
     source: string;
     version: string;
@@ -111,7 +112,10 @@ export class AuditTrail {
     result: AuditResult,
     action: string,
     description: string,
-    details: Record<string, any> = {},
+    details: Record<
+      string,
+      string | number | boolean | Date | null | undefined
+    > = {},
     context: {
       requestId: string;
       userId?: string;
@@ -421,7 +425,10 @@ export class AuditTrail {
       userAgent: string;
       blocked?: boolean;
       riskScore?: number;
-      details?: Record<string, any>;
+      details?: Record<
+        string,
+        string | number | boolean | Date | null | undefined
+      >;
     }
   ): AuditEvent {
     return this.logEvent(
@@ -494,7 +501,7 @@ export class AuditTrail {
 
   private static determineComplianceFlags(
     type: AuditEventType,
-    details: Record<string, any>
+    details: BaseMetadata
   ): AuditEvent["compliance"] {
     const compliance: AuditEvent["compliance"] = {};
 
@@ -558,15 +565,6 @@ export class AuditTrail {
   }
 
   private static logToStructuredLogger(event: AuditEvent): void {
-    const logLevel =
-      event.severity === AuditSeverity.CRITICAL
-        ? "error"
-        : event.severity === AuditSeverity.HIGH
-        ? "error"
-        : event.severity === AuditSeverity.MEDIUM
-        ? "warn"
-        : "info";
-
     structuredLogger.info(
       `[AUDIT] ${event.description}`,
       "audit",
@@ -579,9 +577,14 @@ export class AuditTrail {
         auditSeverity: event.severity,
         resource: event.resource,
         action: event.action,
-        compliance: event.compliance,
-        details: event.details,
-        metadata: event.metadata,
+        complianceGdpr: event.compliance.gdpr || false,
+        complianceHipaa: event.compliance.hipaa || false,
+        complianceSox: event.compliance.sox || false,
+        compliancePci: event.compliance.pci || false,
+        detailsCount: Object.keys(event.details).length,
+        metadataSource: event.metadata.source,
+        metadataVersion: event.metadata.version,
+        metadataEnvironment: event.metadata.environment,
       }
     );
   }

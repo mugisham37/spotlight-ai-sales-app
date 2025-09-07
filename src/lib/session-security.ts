@@ -4,6 +4,11 @@ import { auth } from "@clerk/nextjs/server";
 import { headers } from "next/headers";
 import { structuredLogger } from "./structured-logger";
 import { LogLevel } from "./error-handler";
+import type {
+  BaseMetadata,
+  SessionSecurityEventType,
+  SecuritySeverity,
+} from "./types";
 
 export interface SessionSecurityEvent {
   id: string;
@@ -14,23 +19,12 @@ export interface SessionSecurityEvent {
   ipAddress: string;
   userAgent: string;
   location?: string;
-  metadata: Record<string, unknown>;
+  metadata: BaseMetadata;
   timestamp: Date;
   resolved: boolean;
 }
 
-export type SessionSecurityEventType =
-  | "suspicious_login"
-  | "multiple_sessions"
-  | "location_change"
-  | "device_change"
-  | "unusual_activity"
-  | "session_hijack_attempt"
-  | "concurrent_sessions_limit"
-  | "rapid_session_creation"
-  | "session_cleanup_required";
-
-export type SecuritySeverity = "low" | "medium" | "high" | "critical";
+// Types are now imported from shared types file
 
 export interface SessionInfo {
   sessionId: string;
@@ -123,13 +117,13 @@ export class SessionSecurityMonitor {
         await this.logSecurityEvent(
           userId,
           sessionId,
-          "suspicious_login",
+          "unusual_activity",
           result.severity,
           ipAddress,
           userAgent,
           {
-            reasons: result.reasons,
-            recommendedActions: result.recommendedActions,
+            reasons: JSON.stringify(result.reasons),
+            recommendedActions: JSON.stringify(result.recommendedActions),
             requestId,
           }
         );
@@ -143,7 +137,7 @@ export class SessionSecurityMonitor {
           eventType: "suspicious_activity",
           severity: result.severity,
           metadata: {
-            reasons: result.reasons,
+            reasons: JSON.stringify(result.reasons),
             ipAddress,
             userAgent,
           },
@@ -151,7 +145,7 @@ export class SessionSecurityMonitor {
       }
 
       return result;
-    } catch (_error) {
+    } catch (error) {
       structuredLogger.logAuth({
         level: LogLevel.ERROR,
         message: "Session security monitoring failed",
@@ -183,6 +177,7 @@ export class SessionSecurityMonitor {
     try {
       // This would typically check active sessions in a session store
       // For now, we'll simulate the check
+      console.log(`Checking concurrent sessions for user: ${userId}`);
       const activeSessions = await this.getActiveSessionCount();
 
       if (activeSessions > this.MAX_CONCURRENT_SESSIONS) {
@@ -215,7 +210,8 @@ export class SessionSecurityMonitor {
         severity: "low",
         recommendedActions: [],
       };
-    } catch (_error) {
+    } catch (error) {
+      console.error("Error checking concurrent sessions:", error);
       return {
         isSuspicious: false,
         reasons: [],
@@ -270,7 +266,7 @@ export class SessionSecurityMonitor {
         severity: "low",
         recommendedActions: [],
       };
-    } catch (_error) {
+    } catch {
       return {
         isSuspicious: false,
         reasons: [],
@@ -323,7 +319,7 @@ export class SessionSecurityMonitor {
         severity: "low",
         recommendedActions: [],
       };
-    } catch (_error) {
+    } catch {
       return {
         isSuspicious: false,
         reasons: [],
@@ -340,6 +336,7 @@ export class SessionSecurityMonitor {
     userId: string
   ): Promise<SuspiciousActivityResult> {
     try {
+      console.log(`Checking rapid session creation for user: ${userId}`);
       const recentSessions = await this.getRecentSessionCount(); // Last minute
 
       if (recentSessions >= this.RAPID_SESSION_THRESHOLD) {
@@ -362,7 +359,7 @@ export class SessionSecurityMonitor {
         severity: "low",
         recommendedActions: [],
       };
-    } catch (_error) {
+    } catch {
       return {
         isSuspicious: false,
         reasons: [],
@@ -380,6 +377,9 @@ export class SessionSecurityMonitor {
     sessionId: string
   ): Promise<SuspiciousActivityResult> {
     try {
+      console.log(
+        `Checking unusual activity for user: ${userId}, session: ${sessionId}`
+      );
       const activityPattern = await this.analyzeActivityPattern();
 
       if (activityPattern.isUnusual) {
@@ -400,7 +400,7 @@ export class SessionSecurityMonitor {
         severity: "low",
         recommendedActions: [],
       };
-    } catch (_error) {
+    } catch {
       return {
         isSuspicious: false,
         reasons: [],
@@ -420,7 +420,10 @@ export class SessionSecurityMonitor {
     severity: SecuritySeverity,
     ipAddress: string,
     userAgent: string,
-    metadata: Record<string, unknown>
+    metadata: Record<
+      string,
+      string | number | boolean | Date | null | undefined
+    >
   ): Promise<void> {
     try {
       // In a real implementation, you would store this in a security events table
@@ -435,7 +438,8 @@ export class SessionSecurityMonitor {
         requestId: (metadata.requestId as string) || crypto.randomUUID(),
         userId,
         sessionId,
-        eventType,
+        eventType:
+          eventType === "location_change" ? "ip_location_change" : eventType,
         severity,
         metadata: {
           ...metadata,

@@ -1,5 +1,5 @@
 import { AuthLogger } from "./auth-logger";
-import { AuditTrail, AuditEventType } from "./audit-trail";
+import { AuditTrail, AuditSeverity } from "./audit-trail";
 
 export interface MFASecurityEvent {
   eventType:
@@ -36,7 +36,10 @@ export interface MFASecurityEvent {
   suspiciousFlags?: string[];
 
   // Additional metadata
-  metadata?: Record<string, any>;
+  metadata?: Record<
+    string,
+    string | number | boolean | Date | null | undefined
+  >;
 }
 
 export interface MFASecurityMetrics {
@@ -82,7 +85,10 @@ export class MFASecurityLogger {
     success: boolean,
     errorCode?: string,
     errorMessage?: string,
-    metadata?: Record<string, any>
+    metadata?: Record<
+      string,
+      string | number | boolean | Date | null | undefined
+    >
   ): void {
     const event: MFASecurityEvent = {
       eventType: success ? "mfa_setup_completed" : "mfa_setup_failed",
@@ -179,7 +185,10 @@ export class MFASecurityLogger {
       userAgent?: string;
       sessionId?: string;
       method?: "totp" | "backup_code";
-      metadata?: Record<string, any>;
+      metadata?: Record<
+        string,
+        string | number | boolean | Date | null | undefined
+      >;
     }
   ): void {
     const event: MFASecurityEvent = {
@@ -364,20 +373,18 @@ export class MFASecurityLogger {
         metadata: {
           triggeringEvent: event.eventType,
           recentFailures,
-          recentIPs: event.ipAddress
-            ? Array.from(
-                new Set(
-                  this.events
-                    .filter(
-                      (e) =>
-                        e.userId === event.userId &&
-                        e.timestamp.getTime() > Date.now() - 60 * 60 * 1000 &&
-                        e.ipAddress
-                    )
-                    .map((e) => e.ipAddress)
-                )
-              )
-            : [],
+          recentIPsCount: event.ipAddress
+            ? new Set(
+                this.events
+                  .filter(
+                    (e) =>
+                      e.userId === event.userId &&
+                      e.timestamp.getTime() > Date.now() - 60 * 60 * 1000 &&
+                      e.ipAddress
+                  )
+                  .map((e) => e.ipAddress)
+              ).size
+            : 0,
         },
       });
     }
@@ -396,7 +403,7 @@ export class MFASecurityLogger {
       errorMessage: event.errorMessage,
       attemptCount: event.attemptCount,
       remainingAttempts: event.remainingAttempts,
-      suspiciousFlags: event.suspiciousFlags,
+      suspiciousFlagsCount: event.suspiciousFlags?.length || 0,
       ipAddress: event.ipAddress,
       userAgent: event.userAgent,
       sessionId: event.sessionId,
@@ -422,35 +429,25 @@ export class MFASecurityLogger {
    * Log to audit trail system
    */
   private static logToAuditTrail(event: MFASecurityEvent): void {
-    let auditEventType: AuditEventType;
-
-    switch (event.eventType) {
-      case "mfa_setup_completed":
-        auditEventType = AuditEventType.MFA_ENABLED;
-        break;
-      case "mfa_disabled":
-        auditEventType = AuditEventType.MFA_DISABLED;
-        break;
-      case "mfa_verification_success":
-      case "mfa_verification_failed":
-        auditEventType = AuditEventType.MFA_VERIFIED;
-        break;
-      default:
-        // For other events, use a generic security event type
-        auditEventType = AuditEventType.LOGIN_ATTEMPT;
-        break;
-    }
-
-    AuditTrail.logSecurityEvent(auditEventType, event.userId, event.success, {
-      method: event.method,
-      eventType: event.eventType,
-      errorCode: event.errorCode,
-      errorMessage: event.errorMessage,
-      ipAddress: event.ipAddress,
-      userAgent: event.userAgent,
-      suspiciousFlags: event.suspiciousFlags,
-      ...event.metadata,
-    });
+    AuditTrail.logSecurityEvent(
+      event.eventType,
+      event.success ? AuditSeverity.LOW : AuditSeverity.MEDIUM,
+      `MFA Security Event: ${event.eventType}`,
+      {
+        requestId: crypto.randomUUID(),
+        userId: event.userId,
+        ip: event.ipAddress || "unknown",
+        userAgent: event.userAgent || "unknown",
+        details: {
+          method: event.method,
+          eventType: event.eventType,
+          errorCode: event.errorCode,
+          errorMessage: event.errorMessage,
+          suspiciousFlagsCount: event.suspiciousFlags?.length || 0,
+          ...event.metadata,
+        },
+      }
+    );
   }
 
   /**
