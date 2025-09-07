@@ -1,9 +1,9 @@
 "use server";
 
 import { headers } from "next/headers";
-
 import { structuredLogger } from "./structured-logger";
 import { LogLevel } from "./error-handler";
+import type { SecuritySeverity } from "./types";
 
 export interface LoginAttempt {
   id: string;
@@ -33,7 +33,7 @@ export interface BruteForceResult {
   attemptsRemaining: number;
   lockoutUntil?: Date;
   reason?: string;
-  severity: "low" | "medium" | "high" | "critical";
+  severity: SecuritySeverity;
 }
 
 export interface AccountLockStatus {
@@ -48,6 +48,138 @@ export interface AccountLockStatus {
  * Brute force protection system
  */
 export class BruteForceProtection {
+  private static readonly DEFAULT_CONFIG: BruteForceConfig = {
+    maxAttempts: 5,
+    windowMinutes: 15,
+    lockoutMinutes: 30,
+    progressiveLockout: true,
+    trackByIp: true,
+    trackByEmail: true,
+  };
+
+  private static attempts: Map<string, LoginAttempt[]> = new Map();
+
+  static async checkLoginAttempt(
+    identifier: string,
+    config: Partial<BruteForceConfig> = {}
+  ): Promise<BruteForceResult> {
+    const finalConfig = { ...this.DEFAULT_CONFIG, ...config };
+    const now = new Date();
+    const windowStart = new Date(now.getTime() - finalConfig.windowMinutes * 60 * 1000);
+    
+    const attempts = this.attempts.get(identifier) || [];
+    const recentAttempts = attempts.filter(attempt => 
+      attempt.timestamp >= windowStart && !attempt.success
+    );
+
+    const attemptsRemaining = Math.max(0, finalConfig.maxAttempts - recentAttempts.length);
+    
+    if (recentAttempts.length >= finalConfig.maxAttempts) {
+      const lockoutUntil = new Date(now.getTime() + finalConfig.lockoutMinutes * 60 * 1000);
+      return {
+        allowed: false,
+        attemptsRemaining: 0,
+        lockoutUntil,
+        reason: "Too many failed attempts",
+        severity: "high"
+      };
+    }
+
+    return {
+      allowed: true,
+      attemptsRemaining,
+      severity: "low"
+    };
+  }
+
+  static async recordLoginAttempt(
+    identifier: string,
+    success: boolean,
+    userId?: string,
+    metadata?: Record<string, string | number | boolean | Date | null | undefined>
+  ): Promise<void> {
+    const headersList = await headers();
+    const attempt: LoginAttempt = {
+      id: crypto.randomUUID(),
+      identifier,
+      ipAddress: headersList.get('x-forwarded-for') || 'unknown',
+      userAgent: headersList.get('user-agent') || 'unknown',
+      success,
+      timestamp: new Date(),
+      userId,
+      metadata
+    };
+
+    const attempts = this.attempts.get(identifier) || [];
+    attempts.push(attempt);
+    this.attempts.set(identifier, attempts);
+
+    structuredLogger.logSecurity({
+      level: success ? LogLevel.INFO : LogLevel.WARN,
+      message: `Login attempt ${success ? 'succeeded' : 'failed'} for ${identifier}`,
+      requestId: crypto.randomUUID(),
+      userId,
+      eventType: success ? "suspicious_login" : "brute_force",
+      severity: success ? "low" : "medium",
+      metadata: {
+        identifier,
+        success,
+        ...metadata
+      }
+    });
+  }
+
+  static async clearFailedAttempts(identifier: string): Promise<void> {
+    const attempts = this.attempts.get(identifier) || [];
+    const successfulAttempts = attempts.filter(attempt => attempt.success);
+    this.attempts.set(identifier, successfulAttempts);
+  }
+}
+
+export class UnusualPatternDetector {
+  static async detectUnusualPatterns(
+    userId: string,
+    context: {
+      ipAddress: string;
+      userAgent: string;
+      timestamp: Date;
+    }
+  ): Promise<{
+    isUnusual: boolean;
+    patterns: string[];
+    severity: SecuritySeverity;
+    recommendedActions: string[];
+  }> {
+    // Simple implementation - in production this would be more sophisticated
+    return {
+      isUnusual: false,
+      patterns: [],
+      severity: "low",
+      recommendedActions: []
+    };
+  }
+}
+
+export class SecurityAlerts {
+  static async sendUnusualLoginAlert(
+    userId: string,
+    patterns: string[],
+    severity: SecuritySeverity
+  ): Promise<void> {
+    structuredLogger.logSecurity({
+      level: LogLevel.WARN,
+      message: "Unusual login pattern detected",
+      requestId: crypto.randomUUID(),
+      userId,
+      eventType: "unusual_pattern",
+      severity,
+      metadata: {
+        patterns: patterns.join(", "),
+        alertSent: true
+      }
+    });
+  }
+}
   private static readonly DEFAULT_CONFIG: BruteForceConfig = {
     maxAttempts: 5,
     windowMinutes: 15,

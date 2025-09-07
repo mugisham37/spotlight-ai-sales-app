@@ -3,6 +3,7 @@
 import prismaClient from "@/lib/prismaClient";
 import { currentUser } from "@clerk/nextjs/server";
 import { ErrorResponseFormatter } from "@/lib/error-responses";
+import { ErrorHandler, LogLevel } from "@/lib/error-handler";
 import { structuredLogger } from "@/lib/structured-logger";
 import {
   BruteForceProtection,
@@ -34,7 +35,7 @@ export async function onAuthenticateUser(): Promise<AuthResponse> {
   try {
     // Log authentication attempt
     structuredLogger.logAuth({
-      level: "info",
+      level: LogLevel.INFO,
       message: "User authentication attempt started",
       requestId,
       action: "authenticate_start",
@@ -52,7 +53,7 @@ export async function onAuthenticateUser(): Promise<AuthResponse> {
       );
 
       structuredLogger.logAuth({
-        level: "warn",
+        level: LogLevel.WARN,
         message: "Authentication failed: No user found from Clerk",
         requestId,
         action: "authenticate_no_user",
@@ -96,7 +97,7 @@ export async function onAuthenticateUser(): Promise<AuthResponse> {
         );
 
         structuredLogger.logAuth({
-          level: "warn",
+          level: LogLevel.WARN,
           message: "Authentication blocked by brute force protection",
           requestId,
           userId: user.id,
@@ -121,7 +122,7 @@ export async function onAuthenticateUser(): Promise<AuthResponse> {
     }
 
     structuredLogger.logAuth({
-      level: "info",
+      level: LogLevel.INFO,
       message: "Clerk user found, checking database",
       requestId,
       userId: user.id,
@@ -140,14 +141,14 @@ export async function onAuthenticateUser(): Promise<AuthResponse> {
     if (!email) {
       const error = ErrorResponseFormatter.createValidationError(
         "email",
-        user.emailAddresses,
+        user.emailAddresses?.length || 0,
         "User must have a valid email address",
         "Please ensure your account has a verified email address",
         requestId
       );
 
       structuredLogger.logAuth({
-        level: "error",
+        level: LogLevel.ERROR,
         message: "User validation failed: No email address found",
         requestId,
         userId: user.id,
@@ -189,7 +190,7 @@ export async function onAuthenticateUser(): Promise<AuthResponse> {
       );
 
       structuredLogger.logAuth({
-        level: "error",
+        level: LogLevel.ERROR,
         message: "Database query failed during user lookup",
         requestId,
         userId: user.id,
@@ -250,7 +251,7 @@ export async function onAuthenticateUser(): Promise<AuthResponse> {
           );
 
           structuredLogger.logSecurity({
-            level: "warn",
+            level: LogLevel.WARN,
             message: "Unusual login pattern detected during authentication",
             requestId,
             userId: userExists.id,
@@ -265,7 +266,7 @@ export async function onAuthenticateUser(): Promise<AuthResponse> {
       } catch (patternError) {
         // Don't fail authentication due to pattern detection errors
         structuredLogger.logAuth({
-          level: "warn",
+          level: LogLevel.WARN,
           message: "Pattern detection failed during authentication",
           requestId,
           userId: userExists.id,
@@ -290,7 +291,7 @@ export async function onAuthenticateUser(): Promise<AuthResponse> {
 
         if (securityResult.isSuspicious) {
           structuredLogger.logSecurity({
-            level: "warn",
+            level: LogLevel.WARN,
             message:
               "Suspicious session activity detected during authentication",
             requestId,
@@ -307,7 +308,7 @@ export async function onAuthenticateUser(): Promise<AuthResponse> {
       } catch (sessionError) {
         // Don't fail authentication due to session monitoring errors
         structuredLogger.logAuth({
-          level: "warn",
+          level: LogLevel.WARN,
           message: "Session monitoring failed during authentication",
           requestId,
           userId: userExists.id,
@@ -323,7 +324,7 @@ export async function onAuthenticateUser(): Promise<AuthResponse> {
       }
 
       structuredLogger.logAuth({
-        level: "info",
+        level: LogLevel.INFO,
         message: "User authenticated successfully",
         requestId,
         userId: userExists.id,
@@ -385,7 +386,7 @@ export async function onAuthenticateUser(): Promise<AuthResponse> {
       );
 
       structuredLogger.logAuth({
-        level: "error",
+        level: LogLevel.ERROR,
         message: "Failed to create user in database",
         requestId,
         userId: user.id,
@@ -420,7 +421,7 @@ export async function onAuthenticateUser(): Promise<AuthResponse> {
       );
 
       structuredLogger.logAuth({
-        level: "error",
+        level: LogLevel.ERROR,
         message: "User creation returned null result",
         requestId,
         userId: user.id,
@@ -468,7 +469,7 @@ export async function onAuthenticateUser(): Promise<AuthResponse> {
         );
 
         structuredLogger.logSecurity({
-          level: "warn",
+          level: LogLevel.WARN,
           message: "Unusual pattern detected during new user registration",
           requestId,
           userId: newUser.id,
@@ -484,7 +485,7 @@ export async function onAuthenticateUser(): Promise<AuthResponse> {
     } catch (patternError) {
       // Don't fail registration due to pattern detection errors
       structuredLogger.logAuth({
-        level: "warn",
+        level: LogLevel.WARN,
         message: "Pattern detection failed during new user registration",
         requestId,
         userId: newUser.id,
@@ -500,7 +501,7 @@ export async function onAuthenticateUser(): Promise<AuthResponse> {
     }
 
     structuredLogger.logAuth({
-      level: "info",
+      level: LogLevel.INFO,
       message: "New user created successfully",
       requestId,
       userId: newUser.id,
@@ -550,7 +551,7 @@ export async function onAuthenticateUser(): Promise<AuthResponse> {
     } catch (recordError) {
       // Don't fail the main error handling due to recording issues
       structuredLogger.logAuth({
-        level: "warn",
+        level: LogLevel.WARN,
         message: "Failed to record failed authentication attempt",
         requestId,
         action: "record_failed_attempt_error",
@@ -579,7 +580,7 @@ export async function onAuthenticateUser(): Promise<AuthResponse> {
     );
 
     structuredLogger.logAuth({
-      level: "error",
+      level: LogLevel.ERROR,
       message: "Authentication error occurred",
       requestId,
       action: "authenticate_error",

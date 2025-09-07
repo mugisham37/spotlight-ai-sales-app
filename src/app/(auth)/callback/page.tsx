@@ -1,6 +1,8 @@
 import { onAuthenticateUser } from "@/actions/auth";
 import { redirect } from "next/navigation";
 import { structuredLogger } from "@/lib/structured-logger";
+import { ErrorResponseFormatter } from "@/lib/error-responses";
+import { ErrorHandler, LogLevel } from "@/lib/error-handler";
 
 export const dynamic = "force-dynamic";
 
@@ -10,7 +12,7 @@ const AuthCallbackPage = async () => {
   try {
     // Log callback attempt
     structuredLogger.logAuth({
-      level: "info",
+      level: LogLevel.INFO,
       message: "Authentication callback initiated",
       requestId,
       action: "callback_start",
@@ -21,7 +23,10 @@ const AuthCallbackPage = async () => {
 
     // Log callback result
     structuredLogger.logAuth({
-      level: auth.status === 200 || auth.status === 201 ? "info" : "warn",
+      level:
+        auth.status === 200 || auth.status === 201
+          ? LogLevel.INFO
+          : LogLevel.WARN,
       message: `Authentication callback completed with status ${auth.status}`,
       requestId,
       userId: auth.user?.id,
@@ -41,7 +46,7 @@ const AuthCallbackPage = async () => {
 
     if (auth.status === 200 || auth.status === 201) {
       structuredLogger.logAuth({
-        level: "info",
+        level: LogLevel.INFO,
         message: "Authentication successful, redirecting to home",
         requestId,
         userId: auth.user?.id,
@@ -135,7 +140,7 @@ const AuthCallbackPage = async () => {
     );
 
     structuredLogger.logAuth({
-      level: "error",
+      level: LogLevel.ERROR,
       message: "Authentication callback failed with unexpected error",
       requestId,
       action: "callback_error",

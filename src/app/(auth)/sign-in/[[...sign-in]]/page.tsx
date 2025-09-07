@@ -19,7 +19,7 @@ import {
 
 const SignInContent = () => {
   const [isLoading, setIsLoading] = React.useState(true);
-  const { feedback, showSuccess, showInfo, clearFeedback } = useAuthFeedback();
+  const { feedback, showInfo, clearFeedback } = useAuthFeedback();
   const { preloadFeatures, isFeatureLoaded } = useProgressiveAuth();
 
   React.useEffect(() => {

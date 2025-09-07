@@ -1,5 +1,9 @@
 // Extended Clerk types for MFA functionality
-import { UserResource, TOTPResource as ClerkTOTPResource } from "@clerk/types";
+import {
+  UserResource,
+  TOTPResource as ClerkTOTPResource,
+  BackupCodeResource as ClerkBackupCodeResource,
+} from "@clerk/types";
 
 // Extended TOTP Resource interface that includes Clerk's required properties
 export interface TOTPResource extends ClerkTOTPResource {
@@ -9,17 +13,14 @@ export interface TOTPResource extends ClerkTOTPResource {
   backupCodes?: string[];
 }
 
-// Backup Code Resource interface
-export interface BackupCodeResource {
-  id: string;
+// Custom Backup Code Resource interface that extends Clerk's interface
+export interface BackupCodeResource extends ClerkBackupCodeResource {
   codes: string[];
-  createdAt: number;
-  updatedAt: number;
-  destroy: () => Promise<void>;
 }
 
 // Extended User Resource with MFA properties
-export interface ExtendedUserResource extends Omit<UserResource, "createTOTP"> {
+export interface ExtendedUserResource
+  extends Omit<UserResource, "createTOTP" | "createBackupCode"> {
   totpResource?: TOTPResource | null;
   backupCodeResource?: BackupCodeResource | null;
   createTOTP: () => Promise<TOTPResource>;
