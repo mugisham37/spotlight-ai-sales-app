@@ -1,25 +1,155 @@
-import React from "react";
+"use client";
+
+import React, { Suspense } from "react";
 import { SignIn } from "@clerk/nextjs";
+import { AuthErrorBoundary } from "@/components/auth/AuthErrorHandler";
+import {
+  AuthPageSkeleton,
+  AuthTransition,
+} from "@/components/auth/AuthLoadingStates";
+
+const SignInContent = () => {
+  const [isLoading, setIsLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    // Simulate initial loading state
+    const timer = setTimeout(() => setIsLoading(false), 500);
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (isLoading) {
+    return <AuthPageSkeleton />;
+  }
+
+  return (
+    <AuthTransition isVisible={!isLoading}>
+      <div className="flex items-center justify-center min-h-screen bg-background">
+        <div className="w-full max-w-md p-6">
+          {/* Brand Header */}
+          <div className="text-center mb-8">
+            <h1 className="text-3xl font-bold text-foreground mb-2">
+              Welcome Back
+            </h1>
+            <p className="text-muted-foreground">
+              Sign in to your account to continue
+            </p>
+          </div>
+
+          {/* Clerk SignIn Component */}
+          <SignIn
+            appearance={{
+              elements: {
+                // Main card styling
+                card: "bg-card border border-border rounded-xl shadow-lg p-0",
+
+                // Header styling
+                headerTitle: "text-2xl font-semibold text-card-foreground mb-2",
+                headerSubtitle: "text-muted-foreground text-sm",
+
+                // Form styling
+                formButtonPrimary:
+                  "bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-md transition-all duration-200 shadow-xs focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed",
+
+                // Input styling
+                formFieldInput:
+                  "bg-background border border-input rounded-md px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:border-ring transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed",
+
+                // Label styling
+                formFieldLabel: "text-sm font-medium text-foreground mb-2",
+
+                // Link styling
+                footerActionLink:
+                  "text-primary hover:text-primary/80 font-medium transition-colors duration-200",
+
+                // Error styling
+                formFieldErrorText:
+                  "text-destructive text-sm mt-1 animate-fade-in",
+
+                // Social button styling
+                socialButtonsBlockButton:
+                  "bg-background hover:bg-accent border border-input rounded-md transition-all duration-200 text-foreground hover:text-accent-foreground disabled:opacity-50 disabled:cursor-not-allowed",
+
+                // Divider styling
+                dividerLine: "bg-border",
+                dividerText: "text-muted-foreground text-sm",
+
+                // Footer styling
+                footer: "bg-muted/30 rounded-b-xl",
+                footerActionText: "text-muted-foreground text-sm",
+
+                // Loading state
+                spinner: "text-primary animate-spin",
+
+                // Loading overlay
+                loadingButtonSpinner: "text-primary-foreground animate-spin",
+
+                // Form field wrapper for better error handling
+                formFieldRow: "space-y-2",
+
+                // Alert styling for better error display
+                alert:
+                  "bg-destructive/10 border border-destructive/20 text-destructive rounded-md p-3 text-sm animate-fade-in",
+                alertText: "text-destructive",
+              },
+              layout: {
+                socialButtonsPlacement: "top",
+                socialButtonsVariant: "blockButton",
+              },
+              variables: {
+                colorPrimary: "hsl(var(--primary))",
+                colorBackground: "hsl(var(--background))",
+                colorInputBackground: "hsl(var(--background))",
+                colorInputText: "hsl(var(--foreground))",
+                colorText: "hsl(var(--foreground))",
+                colorTextSecondary: "hsl(var(--muted-foreground))",
+                colorDanger: "hsl(var(--destructive))",
+                colorSuccess: "hsl(var(--primary))",
+                colorWarning: "hsl(var(--destructive))",
+                colorNeutral: "hsl(var(--muted))",
+                borderRadius: "var(--radius)",
+                fontFamily: "var(--font-sans)",
+                fontSize: "14px",
+                spacingUnit: "1rem",
+              },
+            }}
+            forceRedirectUrl="/callback"
+            signUpUrl="/sign-up"
+            routing="path"
+            path="/sign-in"
+          />
+
+          {/* Additional branding footer */}
+          <div className="text-center mt-8 text-xs text-muted-foreground">
+            <p>
+              By signing in, you agree to our{" "}
+              <a
+                href="#"
+                className="text-primary hover:text-primary/80 transition-colors"
+              >
+                Terms of Service
+              </a>{" "}
+              and{" "}
+              <a
+                href="#"
+                className="text-primary hover:text-primary/80 transition-colors"
+              >
+                Privacy Policy
+              </a>
+            </p>
+          </div>
+        </div>
+      </div>
+    </AuthTransition>
+  );
+};
 
 const SignInPage = () => {
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-50">
-      <div className="w-full max-w-md">
-        <SignIn
-          appearance={{
-            elements: {
-              formButtonPrimary:
-                "bg-blue-600 hover:bg-blue-700 text-sm normal-case",
-              card: "shadow-lg",
-              headerTitle: "text-2xl font-bold text-gray-900",
-              headerSubtitle: "text-gray-600",
-            },
-          }}
-          redirectUrl="/callback"
-          signUpUrl="/sign-up"
-        />
-      </div>
-    </div>
+    <AuthErrorBoundary>
+      <Suspense fallback={<AuthPageSkeleton />}>
+        <SignInContent />
+      </Suspense>
+    </AuthErrorBoundary>
   );
 };
 
