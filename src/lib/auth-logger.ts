@@ -5,7 +5,10 @@ export interface AuthLogEntry {
   userId?: string;
   email?: string;
   timestamp: Date;
-  metadata?: Record<string, any>;
+  metadata?: Record<
+    string,
+    string | number | boolean | Date | null | undefined
+  >;
 }
 
 export class AuthLogger {
@@ -22,7 +25,10 @@ export class AuthLogger {
     message: string,
     userId?: string,
     email?: string,
-    metadata?: Record<string, any>
+    metadata?: Record<
+      string,
+      string | number | boolean | Date | null | undefined
+    >
   ) {
     const entry: AuthLogEntry = {
       level: "info",
@@ -39,7 +45,10 @@ export class AuthLogger {
     message: string,
     userId?: string,
     email?: string,
-    metadata?: Record<string, any>
+    metadata?: Record<
+      string,
+      string | number | boolean | Date | null | undefined
+    >
   ) {
     const entry: AuthLogEntry = {
       level: "warn",
@@ -57,7 +66,10 @@ export class AuthLogger {
     error?: Error,
     userId?: string,
     email?: string,
-    metadata?: Record<string, any>
+    metadata?: Record<
+      string,
+      string | number | boolean | Date | null | undefined
+    >
   ) {
     const entry: AuthLogEntry = {
       level: "error",
@@ -67,13 +79,9 @@ export class AuthLogger {
       timestamp: new Date(),
       metadata: {
         ...metadata,
-        error: error
-          ? {
-              name: error.name,
-              message: error.message,
-              stack: error.stack,
-            }
-          : undefined,
+        errorName: error?.name,
+        errorMessage: error?.message,
+        errorStack: error?.stack,
       },
     };
     console.error(this.formatMessage(entry));

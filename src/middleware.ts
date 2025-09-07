@@ -1,34 +1,385 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
+import { AuthLogger } from "./lib/auth-logger";
+import {
+  SecurityHeaderManager,
+  RateLimitManager,
+  SecurityValidator,
+  RATE_LIMIT_CONFIGS,
+} from "./lib/security-config";
 
+// Define route matchers for different protection levels
 const isPublicRoute = createRouteMatcher([
   "/sign-in(.*)",
   "/sign-up(.*)",
-  "/api(.*)",
   "/live-webinar(.*)",
   "/",
   "/callback(.*)",
 ]);
 
+const isApiRoute = createRouteMatcher(["/api(.*)"]);
+const isWebhookRoute = createRouteMatcher(["/api/webhooks(.*)"]);
+const isProtectedApiRoute = createRouteMatcher([
+  "/api/auth(.*)",
+  "/api/user(.*)",
+  "/api/protected(.*)",
+]);
+
+// Rate limiting identifiers
+function getRateLimitIdentifier(req: NextRequest): string {
+  const ip =
+    req.ip ||
+    req.headers.get("x-forwarded-for") ||
+    req.headers.get("x-real-ip") ||
+    "unknown";
+  const userAgent = req.headers.get("user-agent") || "unknown";
+  return `${ip}:${userAgent.slice(0, 50)}`; // Limit user agent length for key
+}
+
+interface MiddlewareError extends Error {
+  code?: string;
+  status?: number;
+}
+
+function createAuthError(
+  message: string,
+  code: string,
+  status: number = 401
+): MiddlewareError {
+  const error = new Error(message) as MiddlewareError;
+  error.code = code;
+  error.status = status;
+  return error;
+}
+
+function getClientInfo(req: NextRequest) {
+  return {
+    ip:
+      req.ip ||
+      req.headers.get("x-forwarded-for") ||
+      req.headers.get("x-real-ip") ||
+      "unknown",
+    userAgent: req.headers.get("user-agent") || "unknown",
+    referer: req.headers.get("referer") || "unknown",
+  };
+}
+
+function createSecureResponse(
+  response: NextResponse,
+  req: NextRequest
+): NextResponse {
+  return SecurityHeaderManager.createSecureResponse(response, req);
+}
+
+function handleAuthenticationError(
+  error: MiddlewareError,
+  req: NextRequest
+): NextResponse {
+  const clientInfo = getClientInfo(req);
+  const requestId = crypto.randomUUID();
+
+  // Log the authentication error with context
+  AuthLogger.error(
+    `Authentication failed for ${req.nextUrl.pathname}`,
+    error,
+    undefined,
+    undefined,
+    {
+      path: req.nextUrl.pathname,
+      method: req.method,
+      ip: clientInfo.ip,
+      userAgent: clientInfo.userAgent,
+      referer: clientInfo.referer,
+      requestId,
+      errorCode: error.code,
+    }
+  );
+
+  // Handle API route authentication failures
+  if (isApiRoute(req)) {
+    const response = NextResponse.json(
+      {
+        error: {
+          code: error.code || "AUTH_FAILED",
+          message: "Authentication required",
+          requestId,
+          timestamp: new Date().toISOString(),
+        },
+      },
+      { status: error.status || 401 }
+    );
+    return createSecureResponse(response, req);
+  }
+
+  // Handle page route authentication failures with graceful redirect
+  if (req.nextUrl.pathname !== "/sign-in") {
+    const signInUrl = new URL("/sign-in", req.url);
+    signInUrl.searchParams.set("redirect_url", req.nextUrl.pathname);
+
+    // Add error context for better UX
+    if (error.code) {
+      signInUrl.searchParams.set("error", error.code);
+    }
+
+    const response = NextResponse.redirect(signInUrl);
+    return createSecureResponse(response, req);
+  }
+
+  // Fallback response
+  const response = NextResponse.next();
+  return createSecureResponse(response, req);
+}
+
 export default clerkMiddleware(async (auth, req) => {
+  const startTime = Date.now();
+  const clientInfo = getClientInfo(req);
+  const requestId = crypto.randomUUID();
+
   try {
+    // Handle CORS preflight requests
+    if (req.method === "OPTIONS") {
+      const response = SecurityHeaderManager.handleCorsPreflightRequest(req);
+      return createSecureResponse(response, req);
+    }
+
+    // Check for suspicious activity
+    const securityCheck = SecurityValidator.detectSuspiciousActivity(req);
+    if (securityCheck.suspicious) {
+      AuthLogger.warn(
+        `Suspicious activity detected for ${req.nextUrl.pathname}`,
+        undefined,
+        undefined,
+        {
+          reasons: securityCheck.reasons,
+          ip: clientInfo.ip,
+          userAgent: clientInfo.userAgent,
+          requestId,
+        }
+      );
+    }
+
+    // Apply rate limiting
+    const rateLimitId = getRateLimitIdentifier(req);
+    let rateLimitConfig = RATE_LIMIT_CONFIGS.default;
+
+    // Use stricter rate limiting for auth endpoints
+    if (
+      req.nextUrl.pathname.startsWith("/api/auth") ||
+      req.nextUrl.pathname.includes("sign-in") ||
+      req.nextUrl.pathname.includes("sign-up")
+    ) {
+      rateLimitConfig = RATE_LIMIT_CONFIGS.auth;
+    } else if (isWebhookRoute(req)) {
+      rateLimitConfig = RATE_LIMIT_CONFIGS.webhook;
+    }
+
+    const rateLimit = await RateLimitManager.checkRateLimit(
+      rateLimitId,
+      rateLimitConfig
+    );
+
+    if (!rateLimit.allowed) {
+      AuthLogger.warn(
+        `Rate limit exceeded for ${req.nextUrl.pathname}`,
+        undefined,
+        undefined,
+        {
+          ip: clientInfo.ip,
+          userAgent: clientInfo.userAgent,
+          requestId,
+          remaining: rateLimit.remaining,
+        }
+      );
+
+      const response = NextResponse.json(
+        {
+          error: {
+            code: "RATE_LIMIT_EXCEEDED",
+            message: "Too many requests",
+            requestId,
+            timestamp: new Date().toISOString(),
+          },
+        },
+        { status: 429 }
+      );
+
+      const rateLimitedResponse = RateLimitManager.addRateLimitHeaders(
+        response,
+        rateLimit
+      );
+      return createSecureResponse(rateLimitedResponse, req);
+    }
+
+    // Validate webhook signatures for webhook routes
+    if (isWebhookRoute(req) && req.method === "POST") {
+      if (!SecurityValidator.validateWebhookSignature(req)) {
+        AuthLogger.error(
+          `Invalid webhook signature for ${req.nextUrl.pathname}`,
+          undefined,
+          undefined,
+          undefined,
+          {
+            ip: clientInfo.ip,
+            requestId,
+          }
+        );
+
+        const response = NextResponse.json(
+          {
+            error: {
+              code: "INVALID_SIGNATURE",
+              message: "Invalid webhook signature",
+              requestId,
+              timestamp: new Date().toISOString(),
+            },
+          },
+          { status: 401 }
+        );
+
+        return createSecureResponse(response, req);
+      }
+    }
+
+    // Log incoming request for monitoring
+    AuthLogger.info(
+      `Incoming request to ${req.nextUrl.pathname}`,
+      undefined,
+      undefined,
+      {
+        method: req.method,
+        path: req.nextUrl.pathname,
+        ip: clientInfo.ip,
+        userAgent: clientInfo.userAgent,
+        requestId,
+        rateLimitRemaining: rateLimit.remaining,
+      }
+    );
+
+    // Check if route needs protection
     if (!isPublicRoute(req)) {
-      console.log(`Protecting route: ${req.nextUrl.pathname}`);
-      await auth.protect();
+      try {
+        // Get auth state for logging
+        const { userId } = await auth();
+
+        AuthLogger.info(
+          `Protecting route: ${req.nextUrl.pathname}`,
+          userId || undefined,
+          undefined,
+          {
+            path: req.nextUrl.pathname,
+            method: req.method,
+            requestId,
+          }
+        );
+
+        // Protect the route
+        await auth.protect();
+
+        // Log successful authentication
+        AuthLogger.info(
+          `Route access granted: ${req.nextUrl.pathname}`,
+          userId || undefined,
+          undefined,
+          {
+            path: req.nextUrl.pathname,
+            method: req.method,
+            requestId,
+            processingTime: Date.now() - startTime,
+          }
+        );
+      } catch (authError) {
+        // Create specific authentication error
+        const error = createAuthError(
+          "Route protection failed",
+          "ROUTE_PROTECTION_FAILED",
+          401
+        );
+        error.cause = authError;
+        throw error;
+      }
     }
 
-    return NextResponse.next();
+    // Additional protection for sensitive API routes
+    if (isProtectedApiRoute(req)) {
+      try {
+        const { userId } = await auth();
+        if (!userId) {
+          throw createAuthError(
+            "User ID required for protected API access",
+            "USER_ID_REQUIRED",
+            401
+          );
+        }
+
+        AuthLogger.info(
+          `Protected API access granted: ${req.nextUrl.pathname}`,
+          userId,
+          undefined,
+          {
+            path: req.nextUrl.pathname,
+            method: req.method,
+            requestId,
+          }
+        );
+      } catch (apiError) {
+        const error = createAuthError(
+          "Protected API access denied",
+          "PROTECTED_API_ACCESS_DENIED",
+          403
+        );
+        error.cause = apiError;
+        throw error;
+      }
+    }
+
+    // Create successful response with security headers and rate limit info
+    const response = NextResponse.next();
+    const responseWithRateLimit = RateLimitManager.addRateLimitHeaders(
+      response,
+      rateLimit
+    );
+    const secureResponse = createSecureResponse(responseWithRateLimit, req);
+
+    // Log successful request completion
+    const processingTime = Date.now() - startTime;
+    if (processingTime > 1000) {
+      // Log slow requests
+      AuthLogger.warn(
+        `Slow request detected: ${req.nextUrl.pathname}`,
+        undefined,
+        undefined,
+        {
+          path: req.nextUrl.pathname,
+          method: req.method,
+          processingTime,
+          requestId,
+          rateLimitRemaining: rateLimit.remaining,
+        }
+      );
+    }
+
+    return secureResponse;
   } catch (error) {
-    console.error("Middleware error:", error);
+    // Handle different types of errors appropriately
+    const middlewareError = error as MiddlewareError;
 
-    // If authentication fails, redirect to sign-in
-    if (req.nextUrl.pathname !== "/sign-in") {
-      const signInUrl = new URL("/sign-in", req.url);
-      signInUrl.searchParams.set("redirect_url", req.nextUrl.pathname);
-      return NextResponse.redirect(signInUrl);
-    }
+    // Log processing time for failed requests
+    const processingTime = Date.now() - startTime;
+    AuthLogger.error(
+      `Middleware processing failed for ${req.nextUrl.pathname}`,
+      middlewareError,
+      undefined,
+      undefined,
+      {
+        path: req.nextUrl.pathname,
+        method: req.method,
+        processingTime,
+        requestId,
+        ip: clientInfo.ip,
+      }
+    );
 
-    return NextResponse.next();
+    return handleAuthenticationError(middlewareError, req);
   }
 });
 

@@ -8,7 +8,7 @@ import { AlertCircle, RefreshCw, Home, Mail, Shield } from "lucide-react";
 interface AuthError {
   code?: string;
   message: string;
-  details?: any;
+  details?: Record<string, unknown>;
 }
 
 interface AuthErrorHandlerProps {
@@ -20,9 +20,20 @@ interface AuthErrorHandlerProps {
   showSupport?: boolean;
 }
 
-const getErrorDetails = (error: AuthError | string) => {
+interface ErrorDetails {
+  title: string;
+  description: string;
+  action?: string;
+  code?: string;
+}
+
+const getErrorDetails = (error: AuthError | string): ErrorDetails => {
   if (typeof error === "string") {
-    return { message: error, code: "UNKNOWN_ERROR" };
+    return {
+      title: "Authentication Error",
+      description: error,
+      code: "UNKNOWN_ERROR",
+    };
   }
 
   const errorMap: Record<
@@ -283,8 +294,10 @@ export const AuthErrorBoundary: React.FC<{
   return <>{children}</>;
 };
 
-export default {
+const AuthErrorComponents = {
   AuthErrorCard,
   InlineAuthError,
   AuthErrorBoundary,
 };
+
+export default AuthErrorComponents;

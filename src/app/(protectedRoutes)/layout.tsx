@@ -1,6 +1,6 @@
 import { onAuthenticateUser } from "@/actions/auth";
 import Header from "@/components/ReusableComponents/LayoutComponents/Header";
-import { Sidebar } from "@/components/ReusableComponents/LayoutComponents/Sidebar";
+import Sidebar from "@/components/ReusableComponents/LayoutComponents/Sidebar";
 import { redirect } from "next/navigation";
 import React from "react";
 

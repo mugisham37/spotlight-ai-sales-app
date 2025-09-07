@@ -128,10 +128,12 @@ export const AuthTransition = ({
   </div>
 );
 
-export default {
+const AuthLoadingComponents = {
   AuthPageSkeleton,
   InlineAuthLoading,
   AuthFormLoading,
   AuthButtonLoading,
   AuthTransition,
 };
+
+export default AuthLoadingComponents;

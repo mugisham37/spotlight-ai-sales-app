@@ -92,14 +92,12 @@ export const AuthGuard: React.FC<AuthGuardProps> = ({
   showLoadingCard = true,
 }) => {
   const { isLoaded: authLoaded, isSignedIn } = useAuth();
-  const { isLoaded: userLoaded, user } = useUser();
+  const { isLoaded: userLoaded } = useUser();
   const [error, setError] = React.useState<string | null>(null);
-  const [retryCount, setRetryCount] = React.useState(0);
 
   // Handle retry logic
   const handleRetry = React.useCallback(() => {
     setError(null);
-    setRetryCount((prev) => prev + 1);
     // Force re-render by updating a state value
     window.location.reload();
   }, []);
