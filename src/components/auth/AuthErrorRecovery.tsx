@@ -15,7 +15,7 @@ import {
   ArrowRight,
   ExternalLink,
 } from "lucide-react";
-import { AppError, ErrorType } from "@/lib/error-handler";
+import { AppError, ErrorType, LogLevel } from "@/lib/error-handler";
 import { structuredLogger } from "@/lib/structured-logger";
 
 interface AuthErrorRecoveryProps {
@@ -143,7 +143,7 @@ export const AuthErrorRecovery: React.FC<AuthErrorRecoveryProps> = ({
               // Clear cookies (if accessible)
               document.cookie.split(";").forEach((cookie) => {
                 const eqPos = cookie.indexOf("=");
-                const name = eqPos > -1 ? cookie.substr(0, eqPos) : cookie;
+                const name = eqPos > -1 ? cookie.substring(0, eqPos) : cookie;
                 if (
                   name.trim().includes("clerk") ||
                   name.trim().includes("auth")
@@ -196,7 +196,7 @@ export const AuthErrorRecovery: React.FC<AuthErrorRecoveryProps> = ({
     setTimeRemaining(totalEstimatedTime);
 
     structuredLogger.logAuth({
-      level: "info",
+      level: LogLevel.INFO,
       message: "Automated error recovery started",
       requestId: requestId || crypto.randomUUID(),
       userId,
@@ -224,7 +224,7 @@ export const AuthErrorRecovery: React.FC<AuthErrorRecoveryProps> = ({
         setTimeRemaining(remainingTime);
 
         structuredLogger.logAuth({
-          level: "info",
+          level: LogLevel.INFO,
           message: `Recovery step started: ${step.title}`,
           requestId: requestId || crypto.randomUUID(),
           userId,
@@ -243,7 +243,7 @@ export const AuthErrorRecovery: React.FC<AuthErrorRecoveryProps> = ({
           if (stepSuccess) {
             setCompletedSteps((prev) => [...prev, step.id]);
             structuredLogger.logAuth({
-              level: "info",
+              level: LogLevel.INFO,
               message: `Recovery step completed: ${step.title}`,
               requestId: requestId || crypto.randomUUID(),
               userId,
@@ -257,7 +257,7 @@ export const AuthErrorRecovery: React.FC<AuthErrorRecoveryProps> = ({
           } else {
             setFailedSteps((prev) => [...prev, step.id]);
             structuredLogger.logAuth({
-              level: "warn",
+              level: LogLevel.WARN,
               message: `Recovery step failed: ${step.title}`,
               requestId: requestId || crypto.randomUUID(),
               userId,
@@ -288,7 +288,7 @@ export const AuthErrorRecovery: React.FC<AuthErrorRecoveryProps> = ({
 
       // Recovery completed successfully
       structuredLogger.logAuth({
-        level: "info",
+        level: LogLevel.INFO,
         message: "Automated error recovery completed successfully",
         requestId: requestId || crypto.randomUUID(),
         userId,
@@ -304,7 +304,7 @@ export const AuthErrorRecovery: React.FC<AuthErrorRecoveryProps> = ({
       onRecoveryComplete?.();
     } catch (recoveryError) {
       structuredLogger.logAuth({
-        level: "error",
+        level: LogLevel.ERROR,
         message: "Automated error recovery failed",
         requestId: requestId || crypto.randomUUID(),
         userId,
@@ -357,7 +357,7 @@ export const AuthErrorRecovery: React.FC<AuthErrorRecoveryProps> = ({
             <strong>{error.userMessage}</strong>
             <br />
             <span className="text-sm text-muted-foreground">
-              We'll attempt to automatically resolve this issue.
+              We&apos;ll attempt to automatically resolve this issue.
             </span>
           </AlertDescription>
         </Alert>

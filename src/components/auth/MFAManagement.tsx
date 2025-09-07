@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useUser } from "@clerk/nextjs";
+import type { ExtendedUserResource, MFADevice } from "@/types/clerk-extensions";
 import { Button } from "@/components/ui/button";
 import { getMFAStatus, disableMFA, regenerateBackupCodes } from "@/actions/mfa";
 import {
@@ -18,7 +19,6 @@ import {
 } from "@/components/ui/input-otp";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import {
   Dialog,
   DialogContent,
@@ -33,11 +33,6 @@ import {
   ShieldAlert,
   ShieldOff,
   Smartphone,
-  Key,
-  Copy,
-  CheckCircle,
-  Trash2,
-  RefreshCw,
   AlertTriangle,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -45,34 +40,22 @@ import { MFASetup } from "./MFASetup";
 import { MFADeviceManager } from "./MFADeviceManager";
 import { MFARecoveryOptions } from "./MFARecoveryOptions";
 
-interface MFADevice {
-  id: string;
-  name: string;
-  type: "totp" | "backup_code";
-  createdAt: Date;
-  lastUsed?: Date;
-}
+// MFADevice interface is now imported from types
 
 export const MFAManagement: React.FC = () => {
-  const { user } = useUser();
+  const { user } = useUser() as {
+    user: ExtendedUserResource | null | undefined;
+  };
   const [mfaEnabled, setMfaEnabled] = useState(false);
   const [devices, setDevices] = useState<MFADevice[]>([]);
   const [backupCodes, setBackupCodes] = useState<string[]>([]);
   const [showSetup, setShowSetup] = useState(false);
   const [showDisableDialog, setShowDisableDialog] = useState(false);
-  const [showBackupCodes, setShowBackupCodes] = useState(false);
   const [disableVerificationCode, setDisableVerificationCode] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string>("");
-  const [copiedCodes, setCopiedCodes] = useState(false);
 
-  useEffect(() => {
-    if (user) {
-      checkMFAStatus();
-    }
-  }, [user]);
-
-  const checkMFAStatus = async () => {
+  const checkMFAStatus = useCallback(async () => {
     if (!user) return;
 
     try {
@@ -91,6 +74,7 @@ export const MFAManagement: React.FC = () => {
               type: "totp",
               createdAt: status.enabledAt || new Date(),
               lastUsed: status.lastUsedAt,
+              isActive: true,
             },
           ]);
         }
@@ -109,7 +93,15 @@ export const MFAManagement: React.FC = () => {
     } catch (err) {
       console.error("Failed to check MFA status:", err);
     }
-  };
+  }, [user, mfaEnabled]);
+
+  useEffect(() => {
+    if (user) {
+      checkMFAStatus();
+    }
+  }, [user, checkMFAStatus]);
+
+  // checkMFAStatus function moved above useEffect
 
   const handleSetupComplete = () => {
     setShowSetup(false);
@@ -153,8 +145,12 @@ export const MFAManagement: React.FC = () => {
       setShowDisableDialog(false);
       setDisableVerificationCode("");
       toast.success("MFA has been disabled for your account");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to disable MFA");
+    } catch (disableError) {
+      setError(
+        disableError instanceof Error
+          ? disableError.message
+          : "Failed to disable MFA"
+      );
     } finally {
       setIsLoading(false);
     }
@@ -185,21 +181,11 @@ export const MFAManagement: React.FC = () => {
       const finalCodes = result.data?.backupCodes || newCodes;
       setBackupCodes(finalCodes);
       toast.success("New backup codes generated successfully!");
-    } catch (err) {
+    } catch (regenerateError) {
+      console.error("Failed to regenerate backup codes:", regenerateError);
       toast.error("Failed to regenerate backup codes");
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const copyBackupCodes = async () => {
-    try {
-      await navigator.clipboard.writeText(backupCodes.join("\n"));
-      setCopiedCodes(true);
-      setTimeout(() => setCopiedCodes(false), 2000);
-      toast.success("Backup codes copied to clipboard!");
-    } catch (err) {
-      toast.error("Failed to copy backup codes");
     }
   };
 
@@ -258,7 +244,7 @@ export const MFAManagement: React.FC = () => {
               <Alert>
                 <ShieldCheck className="h-4 w-4" />
                 <AlertDescription>
-                  MFA is active on your account. You'll need to provide a
+                  MFA is active on your account. You&apos;ll need to provide a
                   verification code when signing in.
                 </AlertDescription>
               </Alert>

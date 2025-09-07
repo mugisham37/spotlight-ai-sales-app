@@ -447,10 +447,12 @@ export const useAuthFeedback = () => {
   };
 };
 
-export default {
+const AuthFeedbackComponents = {
   AuthSuccessMessage,
   AuthErrorMessage,
   AuthInfoMessage,
   AuthRetryMechanism,
   useAuthFeedback,
 };
+
+export default AuthFeedbackComponents;

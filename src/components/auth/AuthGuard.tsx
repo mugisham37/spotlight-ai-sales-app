@@ -6,13 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import {
-  AlertCircle,
-  RefreshCw,
-  Shield,
-  Loader2,
-  CheckCircle,
-} from "lucide-react";
+import { AlertCircle, RefreshCw, Shield, Loader2 } from "lucide-react";
 
 interface AuthGuardProps {
   children: React.ReactNode;

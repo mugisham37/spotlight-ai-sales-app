@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useSignIn } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import { logMFAVerification } from "@/actions/mfa";
@@ -93,9 +93,14 @@ export const MFAVerification: React.FC<MFAVerificationProps> = ({
       } else {
         setError("Verification incomplete. Please try again.");
       }
-    } catch (err: any) {
+    } catch (totpError: unknown) {
       // Handle Clerk-specific errors with our error handler
-      const mfaError = MFAErrorHandler.handleClerkError(err, {
+      const clerkErrorData = totpError as {
+        errors?: Array<{ code?: string; message?: string }>;
+        code?: string;
+        message?: string;
+      };
+      const mfaError = MFAErrorHandler.handleClerkError(clerkErrorData, {
         attemptType: "totp",
         timestamp: new Date(),
       });
@@ -183,9 +188,14 @@ export const MFAVerification: React.FC<MFAVerificationProps> = ({
       } else {
         setError("Verification incomplete. Please try again.");
       }
-    } catch (err: unknown) {
+    } catch (backupError: unknown) {
       // Handle Clerk-specific errors with our error handler
-      const mfaError = MFAErrorHandler.handleClerkError(err, {
+      const clerkErrorData = backupError as {
+        errors?: Array<{ code?: string; message?: string }>;
+        code?: string;
+        message?: string;
+      };
+      const mfaError = MFAErrorHandler.handleClerkError(clerkErrorData, {
         attemptType: "backup_code",
         timestamp: new Date(),
       });

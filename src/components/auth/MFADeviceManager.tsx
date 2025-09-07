@@ -2,21 +2,34 @@
 
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { 
-  Smartphone, 
-  Trash2, 
-  Edit, 
-  Plus, 
-  Shield, 
+import {
+  Smartphone,
+  Trash2,
+  Edit,
+  Plus,
+  Shield,
   AlertTriangle,
   Calendar,
-  MapPin
+  MapPin,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -66,7 +79,7 @@ export const MFADeviceManager: React.FC<MFADeviceManagerProps> = ({
       const updatedDevices = [...devices, newDevice];
       setDevices(updatedDevices);
       onDeviceUpdate?.(updatedDevices);
-      
+
       setShowAddDevice(false);
       setDeviceName("");
       toast.success("Device added successfully");
@@ -85,15 +98,13 @@ export const MFADeviceManager: React.FC<MFADeviceManagerProps> = ({
 
     setIsLoading(true);
     try {
-      const updatedDevices = devices.map(device =>
-        device.id === deviceId
-          ? { ...device, name: deviceName.trim() }
-          : device
+      const updatedDevices = devices.map((device) =>
+        device.id === deviceId ? { ...device, name: deviceName.trim() } : device
       );
 
       setDevices(updatedDevices);
       onDeviceUpdate?.(updatedDevices);
-      
+
       setShowEditDevice(null);
       setDeviceName("");
       toast.success("Device updated successfully");
@@ -107,10 +118,10 @@ export const MFADeviceManager: React.FC<MFADeviceManagerProps> = ({
   const handleDeleteDevice = async (deviceId: string) => {
     setIsLoading(true);
     try {
-      const updatedDevices = devices.filter(device => device.id !== deviceId);
+      const updatedDevices = devices.filter((device) => device.id !== deviceId);
       setDevices(updatedDevices);
       onDeviceUpdate?.(updatedDevices);
-      
+
       setShowDeleteDevice(null);
       toast.success("Device removed successfully");
     } catch (error) {
@@ -123,7 +134,7 @@ export const MFADeviceManager: React.FC<MFADeviceManagerProps> = ({
   const handleToggleDevice = async (deviceId: string) => {
     setIsLoading(true);
     try {
-      const updatedDevices = devices.map(device =>
+      const updatedDevices = devices.map((device) =>
         device.id === deviceId
           ? { ...device, isActive: !device.isActive }
           : device
@@ -131,9 +142,11 @@ export const MFADeviceManager: React.FC<MFADeviceManagerProps> = ({
 
       setDevices(updatedDevices);
       onDeviceUpdate?.(updatedDevices);
-      
-      const device = devices.find(d => d.id === deviceId);
-      toast.success(`Device ${device?.isActive ? 'disabled' : 'enabled'} successfully`);
+
+      const device = devices.find((d) => d.id === deviceId);
+      toast.success(
+        `Device ${device?.isActive ? "disabled" : "enabled"} successfully`
+      );
     } catch (error) {
       toast.error("Failed to toggle device");
     } finally {
@@ -166,7 +179,8 @@ export const MFADeviceManager: React.FC<MFADeviceManagerProps> = ({
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Add New MFA Device</DialogTitle>
-                <DialogDescription></DialogDescription>       Give your new authenticator device a recognizable name
+                <DialogDescription>
+                  Give your new authenticator device a recognizable name
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4">
@@ -222,7 +236,9 @@ export const MFADeviceManager: React.FC<MFADeviceManagerProps> = ({
                   <div className="flex-1">
                     <div className="flex items-center space-x-2">
                       <p className="font-medium">{device.name}</p>
-                      <Badge variant={device.isActive ? "default" : "secondary"}>
+                      <Badge
+                        variant={device.isActive ? "default" : "secondary"}
+                      >
                         {device.isActive ? "Active" : "Inactive"}
                       </Badge>
                       {device.type === "totp" && (
@@ -232,12 +248,16 @@ export const MFADeviceManager: React.FC<MFADeviceManagerProps> = ({
                     <div className="flex items-center space-x-4 mt-1 text-sm text-muted-foreground">
                       <div className="flex items-center space-x-1">
                         <Calendar className="h-3 w-3" />
-                        <span>Added {device.createdAt.toLocaleDateString()}</span>
+                        <span>
+                          Added {device.createdAt.toLocaleDateString()}
+                        </span>
                       </div>
                       {device.lastUsed && (
                         <div className="flex items-center space-x-1">
                           <Shield className="h-3 w-3" />
-                          <span>Last used {device.lastUsed.toLocaleDateString()}</span>
+                          <span>
+                            Last used {device.lastUsed.toLocaleDateString()}
+                          </span>
                         </div>
                       )}
                       {device.location && (
@@ -267,7 +287,9 @@ export const MFADeviceManager: React.FC<MFADeviceManagerProps> = ({
                   </Button>
                   <Dialog
                     open={showDeleteDevice === device.id}
-                    onOpenChange={(open) => setShowDeleteDevice(open ? device.id : null)}
+                    onOpenChange={(open) =>
+                      setShowDeleteDevice(open ? device.id : null)
+                    }
                   >
                     <DialogTrigger asChild>
                       <Button size="sm" variant="ghost">
@@ -281,13 +303,15 @@ export const MFADeviceManager: React.FC<MFADeviceManagerProps> = ({
                           <span>Remove MFA Device</span>
                         </DialogTitle>
                         <DialogDescription>
-                          Are you sure you want to remove "{device.name}"? This action cannot be undone.
+                          Are you sure you want to remove "{device.name}"? This
+                          action cannot be undone.
                         </DialogDescription>
                       </DialogHeader>
                       <Alert>
                         <AlertTriangle className="h-4 w-4" />
                         <AlertDescription>
-                          Make sure you have other MFA methods available before removing this device.
+                          Make sure you have other MFA methods available before
+                          removing this device.
                         </AlertDescription>
                       </Alert>
                       <div className="flex space-x-2">
@@ -342,7 +366,9 @@ export const MFADeviceManager: React.FC<MFADeviceManagerProps> = ({
               </div>
               <div className="flex space-x-2">
                 <Button
-                  onClick={() => showEditDevice && handleEditDevice(showEditDevice)}
+                  onClick={() =>
+                    showEditDevice && handleEditDevice(showEditDevice)
+                  }
                   disabled={isLoading || !deviceName.trim()}
                 >
                   {isLoading ? "Updating..." : "Update Device"}

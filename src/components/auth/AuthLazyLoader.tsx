@@ -7,6 +7,58 @@ import {
   AuthPerformanceUtils,
 } from "@/lib/auth-performance";
 
+// Error Boundary Component
+interface ErrorBoundaryState {
+  hasError: boolean;
+  error: Error | null;
+}
+
+interface ErrorBoundaryProps {
+  children: React.ReactNode;
+  fallback: ({
+    error,
+    resetError,
+  }: {
+    error: Error;
+    resetError: () => void;
+  }) => React.ReactNode;
+  onError?: (error: Error) => void;
+}
+
+class ErrorBoundary extends React.Component<
+  ErrorBoundaryProps,
+  ErrorBoundaryState
+> {
+  constructor(props: ErrorBoundaryProps) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error("ErrorBoundary caught an error:", error, errorInfo);
+    this.props.onError?.(error);
+  }
+
+  resetError = () => {
+    this.setState({ hasError: false, error: null });
+  };
+
+  render() {
+    if (this.state.hasError && this.state.error) {
+      return this.props.fallback({
+        error: this.state.error,
+        resetError: this.resetError,
+      });
+    }
+
+    return this.props.children;
+  }
+}
+
 // Lazy load authentication components for better performance
 const LazySignIn = lazy(() =>
   import("@clerk/nextjs").then((module) => ({ default: module.SignIn }))
@@ -24,18 +76,14 @@ const LazyUserButton = lazy(() =>
   import("@clerk/nextjs").then((module) => ({ default: module.UserButton }))
 );
 
-// Lazy load feedback components
-const LazyAuthFeedback = lazy(() => import("./AuthFeedback"));
-
-// Lazy load error components
-const LazyAuthErrorHandler = lazy(() => import("./AuthErrorHandler"));
+// Note: Lazy loading for AuthFeedback and AuthErrorHandler removed due to export structure
 
 interface LazyAuthComponentProps {
   component: "SignIn" | "SignUp" | "UserProfile" | "UserButton";
   fallback?: React.ReactNode;
   loadingMessage?: string;
   showProgress?: boolean;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export const LazyAuthComponent: React.FC<LazyAuthComponentProps> = ({
@@ -45,7 +93,6 @@ export const LazyAuthComponent: React.FC<LazyAuthComponentProps> = ({
   showProgress = false,
   ...props
 }) => {
-  const [isLoading, setIsLoading] = React.useState(true);
   const [loadError, setLoadError] = React.useState<Error | null>(null);
 
   // Preload component on hover for better UX
@@ -60,15 +107,6 @@ export const LazyAuthComponent: React.FC<LazyAuthComponentProps> = ({
       import("@clerk/nextjs");
     }
   }, [component]);
-
-  React.useEffect(() => {
-    // Simulate loading delay for better perceived performance
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 300);
-
-    return () => clearTimeout(timer);
-  }, []);
 
   const getComponent = () => {
     switch (component) {
@@ -110,11 +148,20 @@ export const LazyAuthComponent: React.FC<LazyAuthComponentProps> = ({
   return (
     <div onMouseEnter={handleMouseEnter}>
       <Suspense fallback={defaultFallback}>
-        <React.ErrorBoundary
-          fallback={({ error, resetError }) => (
+        <ErrorBoundary
+          fallback={({
+            error: componentError,
+            resetError,
+          }: {
+            error: Error;
+            resetError: () => void;
+          }) => (
             <div className="flex items-center justify-center min-h-screen">
               <div className="text-center space-y-4">
                 <p className="text-destructive">Component failed to load</p>
+                <p className="text-sm text-muted-foreground">
+                  {componentError.message}
+                </p>
                 <button
                   onClick={resetError}
                   className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
@@ -124,10 +171,10 @@ export const LazyAuthComponent: React.FC<LazyAuthComponentProps> = ({
               </div>
             </div>
           )}
-          onError={(error) => setLoadError(error)}
+          onError={(error: Error) => setLoadError(error)}
         >
           {getComponent()}
-        </React.ErrorBoundary>
+        </ErrorBoundary>
       </Suspense>
     </div>
   );
@@ -138,7 +185,6 @@ export const useProgressiveAuth = () => {
   const [loadedFeatures, setLoadedFeatures] = React.useState<Set<string>>(
     new Set()
   );
-  const [isLoading, setIsLoading] = React.useState(false);
 
   const loadFeature = React.useCallback(
     async (featureName: string) => {
@@ -146,7 +192,6 @@ export const useProgressiveAuth = () => {
         return true;
       }
 
-      setIsLoading(true);
       try {
         // Simulate feature loading with dynamic imports
         switch (featureName) {
@@ -159,23 +204,17 @@ export const useProgressiveAuth = () => {
           case "organizations":
             await import("@clerk/nextjs");
             break;
-          case "feedback":
-            await import("./AuthFeedback");
-            break;
-          case "errorHandling":
-            await import("./AuthErrorHandler");
-            break;
           default:
+            // For other features, just simulate loading
+            await new Promise((resolve) => setTimeout(resolve, 100));
             break;
         }
 
         setLoadedFeatures((prev) => new Set([...prev, featureName]));
         return true;
-      } catch (error) {
-        console.error(`Failed to load feature: ${featureName}`, error);
+      } catch (loadingError) {
+        console.error(`Failed to load feature: ${featureName}`, loadingError);
         return false;
-      } finally {
-        setIsLoading(false);
       }
     },
     [loadedFeatures]
@@ -191,7 +230,6 @@ export const useProgressiveAuth = () => {
 
   return {
     loadedFeatures,
-    isLoading,
     loadFeature,
     preloadFeatures,
     isFeatureLoaded: (feature: string) => loadedFeatures.has(feature),
@@ -263,13 +301,13 @@ export const AuthBundleOptimizer = {
   optimizeAuthImages: () => {
     // Use the performance manager for optimized loading
     const strategy = authPerformanceManager.getLoadingStrategy();
-    
+
     if (strategy.enablePreloading) {
       if (typeof window !== "undefined") {
         // Preload critical images based on connection quality
         const logoImg = new Image();
         logoImg.src = "/logo.svg";
-        
+
         if (strategy.chunkSize !== "small") {
           const backgroundImg = new Image();
           backgroundImg.src = "/auth-background.webp";
@@ -290,7 +328,7 @@ export const AuthBundleOptimizer = {
 
   // Get performance metrics
   getMetrics: (componentName?: string) => {
-    return componentName 
+    return componentName
       ? authPerformanceManager.getMetrics(componentName)
       : authPerformanceManager.getAllMetrics();
   },
@@ -298,43 +336,35 @@ export const AuthBundleOptimizer = {
   // Monitor bundle size
   monitorBundleSize: (chunkName: string, size: number) => {
     authPerformanceManager.monitorBundleSize(chunkName, size);
-          console.log(`${componentName} load time: ${duration.toFixed(2)}ms`);
-
-          // Send to analytics if available
-          if (window.gtag) {
-            window.gtag("event", "timing_complete", {
-              name: componentName,
-              value: Math.round(duration),
-            });
-          }
-
-          return duration;
-        },
-      };
-    }
-
-    return { end: () => 0 };
   },
 };
 
 // Code splitting utility for authentication routes
 export const createAuthRoute = (
-  componentImport: () => Promise<{ default: React.ComponentType<any> }>,
+  componentImport: () => Promise<{
+    default: React.ComponentType<Record<string, unknown>>;
+  }>,
   fallback?: React.ReactNode
 ) => {
   const LazyComponent = lazy(componentImport);
 
-  return (props: any) => (
+  const AuthRouteComponent = (props: Record<string, unknown>) => (
     <Suspense fallback={fallback || <AuthPageSkeleton />}>
       <LazyComponent {...props} />
     </Suspense>
   );
+
+  AuthRouteComponent.displayName = "AuthRouteComponent";
+
+  return AuthRouteComponent;
 };
 
-export default {
+const AuthLazyLoaderComponents = {
   LazyAuthComponent,
   useProgressiveAuth,
   OptimizedAuthComponent,
   AuthBundleOptimizer,
   createAuthRoute,
 };
+
+export default AuthLazyLoaderComponents;

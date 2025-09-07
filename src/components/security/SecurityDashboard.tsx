@@ -2,7 +2,7 @@
 
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -22,13 +22,8 @@ import {
   CheckCircle,
   XCircle,
 } from "lucide-react";
-import {
-  SecurityMonitor,
-  SecurityEventType,
-  SecuritySeverity,
-  SecurityMetrics,
-} from "@/lib/security-monitor";
-import { AuditTrail, AuditEventType, AuditSeverity } from "@/lib/audit-trail";
+import { SecurityMonitor, SecurityMetrics } from "@/lib/security-monitor";
+import { AuditTrail } from "@/lib/audit-trail";
 
 interface SecurityDashboardProps {
   timeWindow?: number; // minutes
@@ -42,8 +37,30 @@ export const SecurityDashboard: React.FC<SecurityDashboardProps> = ({
   refreshInterval = 30,
 }) => {
   const [metrics, setMetrics] = React.useState<SecurityMetrics | null>(null);
-  const [auditEvents, setAuditEvents] = React.useState<any[]>([]);
-  const [securityEvents, setSecurityEvents] = React.useState<any[]>([]);
+  const [auditEvents, setAuditEvents] = React.useState<
+    Array<{
+      id: string;
+      timestamp: Date;
+      description: string;
+      result: string;
+      severity: string;
+      email?: string;
+      resource?: string;
+      action: string;
+    }>
+  >([]);
+  const [securityEvents, setSecurityEvents] = React.useState<
+    Array<{
+      id: string;
+      timestamp: Date;
+      description: string;
+      severity: string;
+      riskScore: number;
+      ip: string;
+      type: string;
+      action: string;
+    }>
+  >([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const [lastRefresh, setLastRefresh] = React.useState<Date>(new Date());
 

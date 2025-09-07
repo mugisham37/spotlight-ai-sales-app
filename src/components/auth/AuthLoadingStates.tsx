@@ -7,7 +7,6 @@ import { Shield, Loader2 } from "lucide-react";
 
 export const AuthPageSkeleton = ({
   showProgress = false,
-  message = "Loading authentication...",
 }: {
   showProgress?: boolean;
   message?: string;

@@ -4,24 +4,15 @@ import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle, RefreshCw, Home, Mail, Clock, Info } from "lucide-react";
 import {
-  AlertCircle,
-  RefreshCw,
-  Home,
-  Mail,
-  Shield,
-  Clock,
-  Info,
-} from "lucide-react";
-import { AppError, ErrorType, ErrorSeverity } from "@/lib/error-handler";
+  AppError,
+  ErrorType,
+  ErrorSeverity,
+  LogLevel,
+} from "@/lib/error-handler";
 import { ErrorResponseFormatter, ERROR_CODES } from "@/lib/error-responses";
 import { structuredLogger } from "@/lib/structured-logger";
-import {
-  AuthErrorMessage,
-  AuthRetryMechanism,
-  AuthInfoMessage,
-} from "./AuthFeedback";
-import { AuthTransition } from "./AuthLoadingStates";
 
 interface AuthError {
   code?: string;
@@ -65,8 +56,7 @@ interface ErrorDetails {
 }
 
 const getErrorDetails = (
-  error: AuthError | AppError | string,
-  requestId?: string
+  error: AuthError | AppError | string
 ): ErrorDetails => {
   // Handle AppError instances
   if (
@@ -324,30 +314,34 @@ export const AuthErrorCard: React.FC<AuthErrorHandlerProps> = ({
   requestId,
   userId,
 }) => {
-  if (!error) return null;
-
-  const errorDetails = getErrorDetails(error, requestId);
   const [retryCount, setRetryCount] = React.useState(0);
   const [isRetrying, setIsRetrying] = React.useState(false);
 
   // Log error display for monitoring
   React.useEffect(() => {
-    structuredLogger.logAuth({
-      level: "error",
-      message: "Authentication error displayed to user",
-      requestId: requestId || crypto.randomUUID(),
-      userId,
-      action: "error_display",
-      success: false,
-      errorCode: errorDetails.code,
-      metadata: {
-        errorType: errorDetails.type,
-        severity: errorDetails.severity,
-        canRetry: errorDetails.canRetry,
-        isTemporary: errorDetails.isTemporary,
-      },
-    });
-  }, [error, requestId, userId, errorDetails]);
+    if (error) {
+      const errorDetails = getErrorDetails(error);
+      structuredLogger.logAuth({
+        level: LogLevel.ERROR,
+        message: "Authentication error displayed to user",
+        requestId: requestId || crypto.randomUUID(),
+        userId,
+        action: "error_display",
+        success: false,
+        errorCode: errorDetails.code,
+        metadata: {
+          errorType: errorDetails.type,
+          severity: errorDetails.severity,
+          canRetry: errorDetails.canRetry,
+          isTemporary: errorDetails.isTemporary,
+        },
+      });
+    }
+  }, [error, requestId, userId]);
+
+  if (!error) return null;
+
+  const errorDetails = getErrorDetails(error);
 
   const handleRetry = async () => {
     if (!onRetry || !errorDetails.canRetry) return;
@@ -357,7 +351,7 @@ export const AuthErrorCard: React.FC<AuthErrorHandlerProps> = ({
 
     // Log retry attempt
     structuredLogger.logAuth({
-      level: "info",
+      level: LogLevel.INFO,
       message: "User initiated error recovery retry",
       requestId: requestId || crypto.randomUUID(),
       userId,
@@ -370,10 +364,10 @@ export const AuthErrorCard: React.FC<AuthErrorHandlerProps> = ({
     });
 
     try {
-      await onRetry();
+      onRetry();
     } catch (retryError) {
       structuredLogger.logAuth({
-        level: "error",
+        level: LogLevel.ERROR,
         message: "Error recovery retry failed",
         requestId: requestId || crypto.randomUUID(),
         userId,
@@ -397,7 +391,7 @@ export const AuthErrorCard: React.FC<AuthErrorHandlerProps> = ({
   const handleRecoveryAction = (action: string, url?: string) => {
     // Log recovery action
     structuredLogger.logAuth({
-      level: "info",
+      level: LogLevel.INFO,
       message: `User initiated recovery action: ${action}`,
       requestId: requestId || crypto.randomUUID(),
       userId,
@@ -599,13 +593,14 @@ export const InlineAuthError: React.FC<{
   requestId?: string;
   userId?: string;
 }> = ({ error, onDismiss, onRetry, className = "", requestId, userId }) => {
-  const errorDetails = getErrorDetails(error, requestId);
   const [isRetrying, setIsRetrying] = React.useState(false);
+  const errorDetails = getErrorDetails(error);
 
   // Log inline error display
   React.useEffect(() => {
+    const errorDetails = getErrorDetails(error);
     structuredLogger.logAuth({
-      level: "warn",
+      level: LogLevel.WARN,
       message: "Inline authentication error displayed",
       requestId: requestId || crypto.randomUUID(),
       userId,
@@ -618,7 +613,7 @@ export const InlineAuthError: React.FC<{
         canRetry: errorDetails.canRetry,
       },
     });
-  }, [error, requestId, userId, errorDetails]);
+  }, [error, requestId, userId]);
 
   const handleRetry = async () => {
     if (!onRetry || !errorDetails.canRetry) return;
@@ -626,7 +621,7 @@ export const InlineAuthError: React.FC<{
     setIsRetrying(true);
 
     structuredLogger.logAuth({
-      level: "info",
+      level: LogLevel.INFO,
       message: "Inline error retry initiated",
       requestId: requestId || crypto.randomUUID(),
       userId,
@@ -636,10 +631,10 @@ export const InlineAuthError: React.FC<{
     });
 
     try {
-      await onRetry();
+      onRetry();
     } catch (retryError) {
       structuredLogger.logAuth({
-        level: "error",
+        level: LogLevel.ERROR,
         message: "Inline error retry failed",
         requestId: requestId || crypto.randomUUID(),
         userId,
@@ -729,230 +724,141 @@ export const InlineAuthError: React.FC<{
   );
 };
 
+interface ErrorBoundaryState {
+  hasError: boolean;
+  error: AppError | Error | null;
+  errorCount: number;
+}
+
+class AuthErrorBoundaryClass extends React.Component<
+  {
+    children: React.ReactNode;
+    fallback?: React.ComponentType<{ error: Error; resetError: () => void }>;
+    requestId?: string;
+    userId?: string;
+  },
+  ErrorBoundaryState
+> {
+  private currentRequestId: string;
+
+  constructor(props: {
+    children: React.ReactNode;
+    fallback?: React.ComponentType<{ error: Error; resetError: () => void }>;
+    requestId?: string;
+    userId?: string;
+  }) {
+    super(props);
+    this.state = { hasError: false, error: null, errorCount: 0 };
+    this.currentRequestId = props.requestId || crypto.randomUUID();
+  }
+
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    return { hasError: true, error, errorCount: 0 };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    const isAuthError =
+      error.message?.includes("clerk") ||
+      error.message?.includes("auth") ||
+      error.name?.includes("Auth") ||
+      error.name?.includes("Clerk");
+
+    if (isAuthError) {
+      const appError = ErrorResponseFormatter.createAuthError(
+        "AUTH_INVALID_TOKEN",
+        this.currentRequestId,
+        this.props.userId,
+        {
+          originalError: error.message,
+          errorName: error.name,
+          stack: error.stack,
+          componentStack: errorInfo.componentStack,
+        }
+      );
+
+      this.setState((prevState) => ({
+        hasError: true,
+        error: appError,
+        errorCount: prevState.errorCount + 1,
+      }));
+
+      // Log component error
+      structuredLogger.logAuth({
+        level: LogLevel.ERROR,
+        message: "Auth component error caught by error boundary",
+        requestId: this.currentRequestId,
+        userId: this.props.userId,
+        action: "error_boundary",
+        success: false,
+        errorCode: "COMPONENT_ERROR_BOUNDARY",
+        metadata: {
+          errorMessage: error.message,
+          errorName: error.name,
+          errorCount: this.state.errorCount + 1,
+          componentStack: errorInfo.componentStack,
+        },
+      });
+    }
+  }
+
+  resetError = () => {
+    structuredLogger.logAuth({
+      level: LogLevel.INFO,
+      message: "Auth error boundary reset by user",
+      requestId: this.currentRequestId,
+      userId: this.props.userId,
+      action: "error_boundary_reset",
+      success: true,
+      metadata: {
+        errorCount: this.state.errorCount,
+        previousError: this.state.error
+          ? (this.state.error as AppError).code || this.state.error.message
+          : "unknown",
+      },
+    });
+
+    this.setState({ hasError: false, error: null, errorCount: 0 });
+  };
+
+  render() {
+    if (this.state.hasError && this.state.error) {
+      const { fallback: Fallback } = this.props;
+
+      if (Fallback) {
+        return (
+          <Fallback error={this.state.error} resetError={this.resetError} />
+        );
+      }
+
+      return (
+        <AuthErrorCard
+          error={this.state.error}
+          onRetry={this.resetError}
+          requestId={this.currentRequestId}
+          userId={this.props.userId}
+        />
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
 export const AuthErrorBoundary: React.FC<{
   children: React.ReactNode;
   fallback?: React.ComponentType<{ error: Error; resetError: () => void }>;
   requestId?: string;
   userId?: string;
-}> = ({ children, fallback: Fallback, requestId, userId }) => {
-  const [error, setError] = React.useState<AppError | Error | null>(null);
-  const [errorCount, setErrorCount] = React.useState(0);
-  const currentRequestId = requestId || crypto.randomUUID();
-
-  React.useEffect(() => {
-    const handleError = (event: ErrorEvent) => {
-      const isAuthError =
-        event.error?.message?.includes("clerk") ||
-        event.error?.message?.includes("auth") ||
-        event.error?.name?.includes("Auth") ||
-        event.error?.name?.includes("Clerk");
-
-      if (isAuthError) {
-        const appError = ErrorResponseFormatter.createAuthError(
-          "AUTH_INVALID_TOKEN",
-          currentRequestId,
-          userId,
-          {
-            originalError: event.error.message,
-            errorName: event.error.name,
-            stack: event.error.stack,
-            filename: event.filename,
-            lineno: event.lineno,
-            colno: event.colno,
-          }
-        );
-
-        setError(appError);
-        setErrorCount((prev) => prev + 1);
-
-        // Log error boundary activation
-        structuredLogger.logAuth({
-          level: "error",
-          message: "Auth error boundary activated",
-          requestId: currentRequestId,
-          userId,
-          action: "error_boundary",
-          success: false,
-          errorCode: "ERROR_BOUNDARY_ACTIVATED",
-          metadata: {
-            errorMessage: event.error.message,
-            errorName: event.error.name,
-            errorCount: errorCount + 1,
-            filename: event.filename,
-            lineno: event.lineno,
-          },
-        });
-      }
-    };
-
-    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
-      const reason = event.reason;
-      const isAuthError =
-        typeof reason === "object" &&
-        reason !== null &&
-        (reason.message?.includes("clerk") ||
-          reason.message?.includes("auth") ||
-          reason.name?.includes("Auth") ||
-          reason.name?.includes("Clerk"));
-
-      if (isAuthError) {
-        const appError = ErrorResponseFormatter.createAuthError(
-          "AUTH_INVALID_TOKEN",
-          currentRequestId,
-          userId,
-          {
-            originalError: reason.message || "Promise rejection",
-            errorName: reason.name || "UnhandledPromiseRejection",
-            stack: reason.stack,
-            rejectionReason: reason,
-          }
-        );
-
-        setError(appError);
-        setErrorCount((prev) => prev + 1);
-
-        // Log unhandled rejection
-        structuredLogger.logAuth({
-          level: "error",
-          message: "Auth promise rejection caught by error boundary",
-          requestId: currentRequestId,
-          userId,
-          action: "error_boundary",
-          success: false,
-          errorCode: "PROMISE_REJECTION_BOUNDARY",
-          metadata: {
-            rejectionReason: reason.message || "Unknown rejection",
-            errorCount: errorCount + 1,
-          },
-        });
-
-        // Prevent default browser handling
-        event.preventDefault();
-      }
-    };
-
-    // React error boundary for component errors
-    const handleComponentError = (error: Error, errorInfo: unknown) => {
-      const isAuthError =
-        error.message?.includes("clerk") ||
-        error.message?.includes("auth") ||
-        error.name?.includes("Auth") ||
-        error.name?.includes("Clerk");
-
-      if (isAuthError) {
-        const appError = ErrorResponseFormatter.createAuthError(
-          "AUTH_INVALID_TOKEN",
-          currentRequestId,
-          userId,
-          {
-            originalError: error.message,
-            errorName: error.name,
-            stack: error.stack,
-            componentStack: errorInfo.componentStack,
-          }
-        );
-
-        setError(appError);
-        setErrorCount((prev) => prev + 1);
-
-        // Log component error
-        structuredLogger.logAuth({
-          level: "error",
-          message: "Auth component error caught by error boundary",
-          requestId: currentRequestId,
-          userId,
-          action: "error_boundary",
-          success: false,
-          errorCode: "COMPONENT_ERROR_BOUNDARY",
-          metadata: {
-            errorMessage: error.message,
-            errorName: error.name,
-            errorCount: errorCount + 1,
-            componentStack: errorInfo.componentStack,
-          },
-        });
-      }
-    };
-
-    window.addEventListener("error", handleError);
-    window.addEventListener("unhandledrejection", handleUnhandledRejection);
-
-    return () => {
-      window.removeEventListener("error", handleError);
-      window.removeEventListener(
-        "unhandledrejection",
-        handleUnhandledRejection
-      );
-    };
-  }, [currentRequestId, userId, errorCount]);
-
-  const resetError = () => {
-    structuredLogger.logAuth({
-      level: "info",
-      message: "Auth error boundary reset by user",
-      requestId: currentRequestId,
-      userId,
-      action: "error_boundary_reset",
-      success: true,
-      metadata: {
-        errorCount,
-        previousError: error
-          ? (error as AppError).code || error.message
-          : "unknown",
-      },
-    });
-
-    setError(null);
-    setErrorCount(0);
-  };
-
-  // Auto-recovery for certain error types after a delay
-  React.useEffect(() => {
-    if (error && errorCount < 3) {
-      const isRecoverable =
-        error instanceof Error &&
-        (error.message.includes("network") ||
-          error.message.includes("timeout") ||
-          error.message.includes("fetch"));
-
-      if (isRecoverable) {
-        const timer = setTimeout(() => {
-          structuredLogger.logAuth({
-            level: "info",
-            message: "Auto-recovery attempted for recoverable error",
-            requestId: currentRequestId,
-            userId,
-            action: "auto_recovery",
-            success: true,
-            metadata: {
-              errorCount,
-              autoRecoveryDelay: 5000,
-            },
-          });
-          resetError();
-        }, 5000);
-
-        return () => clearTimeout(timer);
-      }
-    }
-  }, [error, errorCount, currentRequestId, userId]);
-
-  if (error) {
-    if (Fallback) {
-      return <Fallback error={error} resetError={resetError} />;
-    }
-
-    return (
-      <AuthErrorCard
-        error={error}
-        onRetry={resetError}
-        requestId={currentRequestId}
-        userId={userId}
-      />
-    );
-  }
-
-  return <>{children}</>;
+}> = ({ children, fallback, requestId, userId }) => {
+  return (
+    <AuthErrorBoundaryClass
+      fallback={fallback}
+      requestId={requestId}
+      userId={userId}
+    >
+      {children}
+    </AuthErrorBoundaryClass>
+  );
 };
 
 const AuthErrorComponents = {

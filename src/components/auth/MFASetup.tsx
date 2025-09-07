@@ -1,7 +1,9 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useUser } from "@clerk/nextjs";
+import Image from "next/image";
+import type { ExtendedUserResource } from "@/types/clerk-extensions";
 import { Button } from "@/components/ui/button";
 import { enableMFA } from "@/actions/mfa";
 import { MFAErrorHandler } from "@/lib/mfa-error-handler";
@@ -40,7 +42,9 @@ export const MFASetup: React.FC<MFASetupProps> = ({
   onSetupComplete,
   onSetupCancel,
 }) => {
-  const { user } = useUser();
+  const { user } = useUser() as {
+    user: ExtendedUserResource | null | undefined;
+  };
   const [step, setStep] = useState<"enable" | "verify" | "complete">("enable");
   const [qrCode, setQrCode] = useState<string>("");
   const [secret, setSecret] = useState<string>("");
@@ -61,8 +65,8 @@ export const MFASetup: React.FC<MFASetupProps> = ({
       // Enable TOTP MFA in Clerk
       const totpResource = await user.createTOTP();
 
-      setQrCode(totpResource.qrCode);
-      setSecret(totpResource.secret!);
+      setQrCode(totpResource.qrCode || "");
+      setSecret(totpResource.secret || "");
       setStep("verify");
     } catch (err) {
       const mfaError = MFAErrorHandler.handleError(
@@ -142,7 +146,8 @@ export const MFASetup: React.FC<MFASetupProps> = ({
         setTimeout(() => setCopiedBackupCodes(false), 2000);
       }
       toast.success("Copied to clipboard!");
-    } catch (err) {
+    } catch (clipboardError) {
+      console.error("Failed to copy to clipboard:", clipboardError);
       toast.error("Failed to copy to clipboard");
     }
   };
@@ -229,10 +234,13 @@ export const MFASetup: React.FC<MFASetupProps> = ({
           {/* QR Code */}
           <div className="text-center">
             <div className="inline-block p-4 bg-white rounded-lg border">
-              <img
+              <Image
                 src={qrCode}
                 alt="MFA QR Code"
-                className="w-48 h-48 mx-auto"
+                width={192}
+                height={192}
+                className="mx-auto"
+                priority
               />
             </div>
           </div>

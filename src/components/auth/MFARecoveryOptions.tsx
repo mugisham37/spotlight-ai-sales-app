@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+
 import {
   Key,
   Download,
@@ -75,7 +75,8 @@ export const MFARecoveryOptions: React.FC<MFARecoveryOptionsProps> = ({
       setCopiedCodes(true);
       setTimeout(() => setCopiedCodes(false), 2000);
       toast.success("Backup codes copied to clipboard!");
-    } catch (err) {
+    } catch (copyError) {
+      console.error("Failed to copy backup codes:", copyError);
       toast.error("Failed to copy backup codes");
     }
   };
@@ -114,7 +115,8 @@ export const MFARecoveryOptions: React.FC<MFARecoveryOptionsProps> = ({
     try {
       onBackupCodesRegenerate?.();
       toast.success("New backup codes generated successfully!");
-    } catch (error) {
+    } catch (regenerateError) {
+      console.error("Failed to regenerate backup codes:", regenerateError);
       toast.error("Failed to regenerate backup codes");
     } finally {
       setIsLoading(false);
@@ -148,7 +150,8 @@ export const MFARecoveryOptions: React.FC<MFARecoveryOptionsProps> = ({
       setShowAddMethod(false);
       setNewMethodValue("");
       toast.success("Recovery method added successfully");
-    } catch (error) {
+    } catch (addError) {
+      console.error("Failed to add recovery method:", addError);
       toast.error("Failed to add recovery method");
     } finally {
       setIsLoading(false);
@@ -164,7 +167,8 @@ export const MFARecoveryOptions: React.FC<MFARecoveryOptionsProps> = ({
       setRecoveryMethods(updatedMethods);
       onRecoveryMethodUpdate?.(updatedMethods);
       toast.success("Recovery method removed successfully");
-    } catch (error) {
+    } catch (removeError) {
+      console.error("Failed to remove recovery method:", removeError);
       toast.error("Failed to remove recovery method");
     } finally {
       setIsLoading(false);
@@ -270,7 +274,7 @@ export const MFARecoveryOptions: React.FC<MFARecoveryOptionsProps> = ({
           ) : (
             <div className="text-center py-4">
               <p className="text-sm text-muted-foreground">
-                Click "Show Codes" to view your backup recovery codes
+                Click &quot;Show Codes&quot; to view your backup recovery codes
               </p>
             </div>
           )}
