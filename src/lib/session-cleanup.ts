@@ -56,7 +56,11 @@ export class SessionCleanup {
           action: "secure_logout_start",
           success: true,
           metadata: {
-            options,
+            clearLocalStorage: options.clearLocalStorage,
+            clearSessionStorage: options.clearSessionStorage,
+            clearCookies: options.clearCookies,
+            terminateOtherSessions: options.terminateOtherSessions,
+            logActivity: options.logActivity,
           },
         });
       }
@@ -115,7 +119,8 @@ export class SessionCleanup {
           success: true,
           metadata: {
             processingTime,
-            itemsCleared,
+            itemsClearedCount: itemsCleared.length,
+            itemsClearedList: itemsCleared.join(", "),
             otherSessionsTerminated,
           },
         });
@@ -156,7 +161,11 @@ export class SessionCleanup {
             processingTime,
             errorMessage:
               error instanceof Error ? error.message : "Unknown error",
-            options,
+            clearLocalStorage: options.clearLocalStorage,
+            clearSessionStorage: options.clearSessionStorage,
+            clearCookies: options.clearCookies,
+            terminateOtherSessions: options.terminateOtherSessions,
+            logActivity: options.logActivity,
           },
         });
       }
@@ -276,7 +285,10 @@ export class SessionCleanup {
         severity: "high",
         metadata: {
           reason,
-          result,
+          resultSuccess: result.success,
+          resultItemsCount: result.itemsCleared.length,
+          resultItemsList: result.itemsCleared.join(", "),
+          resultOtherSessionsTerminated: result.otherSessionsTerminated,
         },
       });
 

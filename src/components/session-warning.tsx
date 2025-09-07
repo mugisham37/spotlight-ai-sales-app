@@ -234,19 +234,8 @@ export interface SessionStatusProps {
 export function SessionStatus({
   isActive,
   timeRemaining,
-  lastActivity,
   className = "",
 }: SessionStatusProps) {
-  const [currentTime, setCurrentTime] = useState(Date.now());
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentTime(Date.now());
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, []);
-
   if (!isActive) {
     return (
       <div

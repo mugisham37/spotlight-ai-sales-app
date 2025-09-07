@@ -26,7 +26,14 @@ export type SecurityEventType =
   | "concurrent_session_limit"
   | "concurrent_sessions_limit"
   | "rapid_session_creation"
-  | "session_cleanup_required";
+  | "session_cleanup_required"
+  | "brute_force_check"
+  | "login_failure"
+  | "account_locked"
+  | "account_unlocked"
+  | "unusual_pattern"
+  | "security_alert"
+  | "lockout_notification";
 
 // Session security event types
 export type SessionSecurityEventType =

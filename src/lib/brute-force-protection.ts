@@ -1,8 +1,9 @@
 "use server";
 
 import { headers } from "next/headers";
-import prismaClient from "./prismaClient";
+
 import { structuredLogger } from "./structured-logger";
+import { LogLevel } from "./error-handler";
 
 export interface LoginAttempt {
   id: string;
@@ -12,7 +13,10 @@ export interface LoginAttempt {
   success: boolean;
   timestamp: Date;
   userId?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<
+    string,
+    string | number | boolean | Date | null | undefined
+  >;
 }
 
 export interface BruteForceConfig {
@@ -116,7 +120,7 @@ export class BruteForceProtection {
 
       // Log the check result
       structuredLogger.logSecurity({
-        level: result.allowed ? "info" : "warn",
+        level: result.allowed ? LogLevel.INFO : LogLevel.WARN,
         message: `Brute force check: ${result.allowed ? "allowed" : "blocked"}`,
         requestId,
         eventType: "brute_force_check",
@@ -134,7 +138,7 @@ export class BruteForceProtection {
       return result;
     } catch (error) {
       structuredLogger.logAuth({
-        level: "error",
+        level: LogLevel.ERROR,
         message: "Brute force check failed",
         requestId,
         action: "brute_force_check_error",
@@ -162,7 +166,10 @@ export class BruteForceProtection {
     identifier: string,
     success: boolean,
     userId?: string,
-    metadata?: Record<string, any>
+    metadata?: Record<
+      string,
+      string | number | boolean | Date | null | undefined
+    >
   ): Promise<void> {
     const requestId = crypto.randomUUID();
 
@@ -176,18 +183,9 @@ export class BruteForceProtection {
 
       // In a real implementation, you would store this in a dedicated table
       // For now, we'll log it and simulate storage
-      const attempt: Omit<LoginAttempt, "id"> = {
-        identifier,
-        ipAddress,
-        userAgent,
-        success,
-        timestamp: new Date(),
-        userId,
-        metadata,
-      };
 
       structuredLogger.logAuth({
-        level: success ? "info" : "warn",
+        level: success ? LogLevel.INFO : LogLevel.WARN,
         message: `Login attempt ${success ? "succeeded" : "failed"}`,
         requestId,
         userId,
@@ -204,7 +202,7 @@ export class BruteForceProtection {
       // Log security event for failed attempts
       if (!success) {
         structuredLogger.logSecurity({
-          level: "warn",
+          level: LogLevel.WARN,
           message: "Failed login attempt recorded",
           requestId,
           userId,
@@ -226,7 +224,7 @@ export class BruteForceProtection {
       );
     } catch (error) {
       structuredLogger.logAuth({
-        level: "error",
+        level: LogLevel.ERROR,
         message: "Failed to record login attempt",
         requestId,
         action: "record_login_attempt_error",
@@ -252,9 +250,6 @@ export class BruteForceProtection {
     try {
       // In a real implementation, this would query your attempts table
       // For now, we'll simulate the check
-      const windowStart = new Date(
-        Date.now() - config.windowMinutes * 60 * 1000
-      );
 
       // Simulate failed attempts count
       const failedAttempts = Math.floor(Math.random() * 3); // 0-2 failed attempts
@@ -287,7 +282,7 @@ export class BruteForceProtection {
         attemptsRemaining,
         severity: attemptsRemaining <= 1 ? "medium" : "low",
       };
-    } catch (error) {
+    } catch {
       // Fail securely
       return {
         allowed: true,
@@ -328,7 +323,7 @@ export class BruteForceProtection {
     try {
       // In a real implementation, this would clear failed attempts from your table
       structuredLogger.logAuth({
-        level: "info",
+        level: LogLevel.INFO,
         message: "Failed attempts cleared after successful login",
         requestId,
         action: "clear_failed_attempts",
@@ -343,7 +338,7 @@ export class BruteForceProtection {
       );
     } catch (error) {
       structuredLogger.logAuth({
-        level: "error",
+        level: LogLevel.ERROR,
         message: "Failed to clear failed attempts",
         requestId,
         action: "clear_failed_attempts_error",
@@ -364,14 +359,17 @@ export class BruteForceProtection {
     identifier: string
   ): Promise<AccountLockStatus> {
     try {
-      // In a real implementation, this would query your database
-      // For now, we'll simulate the status
+      // In a real implementation, this would query your database for the specific identifier
+      // For now, we'll simulate the status for identifier: ${identifier}
+      console.log(
+        `[BruteForceProtection] Checking lock status for ${identifier}`
+      );
       return {
         isLocked: false,
         attemptCount: 0,
         lockoutReason: undefined,
       };
-    } catch (error) {
+    } catch {
       return {
         isLocked: false,
         attemptCount: 0,
@@ -394,7 +392,7 @@ export class BruteForceProtection {
 
       // In a real implementation, this would update your database
       structuredLogger.logSecurity({
-        level: "warn",
+        level: LogLevel.WARN,
         message: "Account manually locked",
         requestId,
         eventType: "account_locked",
@@ -413,7 +411,7 @@ export class BruteForceProtection {
       return true;
     } catch (error) {
       structuredLogger.logAuth({
-        level: "error",
+        level: LogLevel.ERROR,
         message: "Failed to lock account",
         requestId,
         action: "lock_account_error",
@@ -442,7 +440,7 @@ export class BruteForceProtection {
     try {
       // In a real implementation, this would update your database
       structuredLogger.logSecurity({
-        level: "info",
+        level: LogLevel.INFO,
         message: "Account manually unlocked",
         requestId,
         eventType: "account_unlocked",
@@ -459,7 +457,7 @@ export class BruteForceProtection {
       return true;
     } catch (error) {
       structuredLogger.logAuth({
-        level: "error",
+        level: LogLevel.ERROR,
         message: "Failed to unlock account",
         requestId,
         action: "unlock_account_error",
@@ -513,10 +511,7 @@ export class UnusualPatternDetector {
       }
 
       // Check for rapid successive attempts
-      const recentAttempts = await this.getRecentAttempts(
-        userId,
-        5 * 60 * 1000
-      ); // 5 minutes
+      const recentAttempts = await this.getRecentAttempts(); // 5 minutes
       if (recentAttempts > 3) {
         patterns.push("Rapid successive login attempts");
         severity = "high";
@@ -532,10 +527,7 @@ export class UnusualPatternDetector {
       }
 
       // Check for device anomalies
-      const isNewDevice = await this.isNewDevice(
-        userId,
-        currentAttempt.userAgent
-      );
+      const isNewDevice = await this.isNewDevice();
       if (isNewDevice) {
         patterns.push("Login from new device");
         severity = "medium";
@@ -546,23 +538,20 @@ export class UnusualPatternDetector {
 
       if (isUnusual) {
         structuredLogger.logSecurity({
-          level:
-            severity === "critical"
-              ? "error"
-              : severity === "high"
-              ? "warn"
-              : "info",
+          level: severity === "high" ? LogLevel.WARN : LogLevel.INFO,
           message: "Unusual login pattern detected",
           requestId,
           userId,
           eventType: "unusual_pattern",
           severity,
           metadata: {
-            patterns,
+            patternsCount: patterns.length,
+            patternsList: patterns.join(", "),
             ipAddress: currentAttempt.ipAddress,
             userAgent: currentAttempt.userAgent,
             timestamp: currentAttempt.timestamp.toISOString(),
-            recommendedActions,
+            actionsCount: recommendedActions.length,
+            actionsList: recommendedActions.join(", "),
           },
         });
       }
@@ -575,7 +564,7 @@ export class UnusualPatternDetector {
       };
     } catch (error) {
       structuredLogger.logAuth({
-        level: "error",
+        level: LogLevel.ERROR,
         message: "Unusual pattern detection failed",
         requestId,
         userId,
@@ -599,10 +588,7 @@ export class UnusualPatternDetector {
   /**
    * Get recent attempts count
    */
-  private static async getRecentAttempts(
-    userId: string,
-    timeWindow: number
-  ): Promise<number> {
+  private static async getRecentAttempts(): Promise<number> {
     // In a real implementation, this would query your attempts table
     return Math.floor(Math.random() * 2); // 0-1 recent attempts
   }
@@ -610,10 +596,7 @@ export class UnusualPatternDetector {
   /**
    * Check if device is new for user
    */
-  private static async isNewDevice(
-    userId: string,
-    userAgent: string
-  ): Promise<boolean> {
+  private static async isNewDevice(): Promise<boolean> {
     // In a real implementation, this would check user's device history
     return Math.random() < 0.3; // 30% chance for demo
   }
@@ -636,14 +619,15 @@ export class SecurityAlerts {
     try {
       // In a real implementation, this would send email/SMS alerts
       structuredLogger.logSecurity({
-        level: severity === "critical" ? "error" : "warn",
+        level: severity === "critical" ? LogLevel.ERROR : LogLevel.WARN,
         message: "Security alert sent for unusual login",
         requestId,
         userId,
         eventType: "security_alert",
         severity,
         metadata: {
-          patterns,
+          patternsCount: patterns.length,
+          patternsList: patterns.join(", "),
           alertType: "unusual_login",
         },
       });
@@ -655,14 +639,15 @@ export class SecurityAlerts {
       );
     } catch (error) {
       structuredLogger.logAuth({
-        level: "error",
+        level: LogLevel.ERROR,
         message: "Failed to send security alert",
         requestId,
         userId,
         action: "send_security_alert_error",
         success: false,
         metadata: {
-          patterns,
+          patternsCount: patterns.length,
+          patternsList: patterns.join(", "),
           severity,
           errorMessage:
             error instanceof Error ? error.message : "Unknown error",
@@ -684,7 +669,7 @@ export class SecurityAlerts {
     try {
       // In a real implementation, this would send email notification
       structuredLogger.logSecurity({
-        level: "warn",
+        level: LogLevel.WARN,
         message: "Account lockout notification sent",
         requestId,
         eventType: "lockout_notification",
@@ -701,7 +686,7 @@ export class SecurityAlerts {
       );
     } catch (error) {
       structuredLogger.logAuth({
-        level: "error",
+        level: LogLevel.ERROR,
         message: "Failed to send lockout notification",
         requestId,
         action: "send_lockout_notification_error",

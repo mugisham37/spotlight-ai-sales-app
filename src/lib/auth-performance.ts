@@ -3,6 +3,8 @@
  * Handles bundle splitting, lazy loading, and performance monitoring for auth components
  */
 
+import "./navigator-types";
+
 export interface PerformanceConfig {
   enableLazyLoading: boolean;
   enableBundleSplitting: boolean;
@@ -76,7 +78,13 @@ export class AuthPerformanceManager {
    * Get all performance metrics
    */
   getAllMetrics() {
-    const metrics: Record<string, any> = {};
+    const metrics: Record<
+      string,
+      {
+        loadTime: number;
+        chunkSize?: number;
+      }
+    > = {};
 
     for (const [component, loadTime] of this.loadTimes) {
       metrics[component] = {
@@ -94,7 +102,6 @@ export class AuthPerformanceManager {
   optimizeForConnection(): "high" | "medium" | "low" {
     if (typeof navigator === "undefined") return "high";
 
-    // @ts-ignore - navigator.connection is experimental
     const connection =
       navigator.connection ||
       navigator.mozConnection ||
@@ -216,13 +223,23 @@ export class AuthPerformanceManager {
    */
   private sendPerformanceMetrics(componentName: string, duration: number) {
     // Send to Google Analytics if available
-    if (typeof window !== "undefined" && (window as any).gtag) {
-      (window as any).gtag("event", "timing_complete", {
-        name: `auth_${componentName}`,
-        value: Math.round(duration),
-        event_category: "Authentication",
-        event_label: componentName,
-      });
+    if (typeof window !== "undefined") {
+      const windowWithGtag = window as unknown as Window & {
+        gtag?: (
+          command: string,
+          action: string,
+          parameters: Record<string, unknown>
+        ) => void;
+      };
+
+      if (windowWithGtag.gtag) {
+        windowWithGtag.gtag("event", "timing_complete", {
+          name: `auth_${componentName}`,
+          value: Math.round(duration),
+          event_category: "Authentication",
+          event_label: componentName,
+        });
+      }
     }
 
     // Send to custom analytics endpoint
@@ -334,8 +351,12 @@ export const AuthPerformanceUtils = {
     let clsValue = 0;
     new PerformanceObserver((list) => {
       for (const entry of list.getEntries()) {
-        if (!(entry as any).hadRecentInput) {
-          clsValue += (entry as any).value;
+        const layoutShiftEntry = entry as PerformanceEntry & {
+          hadRecentInput?: boolean;
+          value?: number;
+        };
+        if (!layoutShiftEntry.hadRecentInput) {
+          clsValue += layoutShiftEntry.value || 0;
         }
       }
       console.log(`[Auth Performance] CLS: ${clsValue.toFixed(4)}`);

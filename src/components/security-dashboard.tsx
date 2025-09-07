@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useUser } from "@clerk/nextjs";
 import {
   Card,
@@ -22,15 +22,6 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
 import {
   Shield,
@@ -87,12 +78,7 @@ export function SecurityDashboard({ className = "" }: SecurityDashboardProps) {
   const [loading, setLoading] = useState(true);
   const [showAllEvents, setShowAllEvents] = useState(false);
 
-  // Load security data
-  useEffect(() => {
-    loadSecurityData();
-  }, [user]);
-
-  const loadSecurityData = async () => {
+  const loadSecurityData = useCallback(async () => {
     if (!user) return;
 
     try {
@@ -163,7 +149,12 @@ export function SecurityDashboard({ className = "" }: SecurityDashboardProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
+
+  // Load security data
+  useEffect(() => {
+    loadSecurityData();
+  }, [loadSecurityData]);
 
   const resolveSecurityEvent = async (eventId: string) => {
     try {
@@ -180,10 +171,7 @@ export function SecurityDashboard({ className = "" }: SecurityDashboardProps) {
     }
   };
 
-  const getEventIcon = (
-    type: SecurityEvent["type"],
-    severity: SecurityEvent["severity"]
-  ) => {
+  const getEventIcon = (type: SecurityEvent["type"]) => {
     switch (type) {
       case "login_success":
         return <CheckCircle className="h-4 w-4 text-green-500" />;
@@ -437,7 +425,7 @@ export function SecurityDashboard({ className = "" }: SecurityDashboardProps) {
                   }`}
                 >
                   <div className="flex items-start gap-3">
-                    {getEventIcon(event.type, event.severity)}
+                    {getEventIcon(event.type)}
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
                         <span className="font-medium">{event.description}</span>
@@ -494,8 +482,8 @@ export function SecurityDashboard({ className = "" }: SecurityDashboardProps) {
                             </AlertDialogTitle>
                             <AlertDialogDescription>
                               Mark this security event as resolved. This
-                              indicates you've reviewed the event and taken any
-                              necessary action.
+                              indicates you&apos;ve reviewed the event and taken
+                              any necessary action.
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>

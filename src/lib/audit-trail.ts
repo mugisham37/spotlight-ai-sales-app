@@ -288,7 +288,7 @@ export class AuditTrail {
         : `Permission denied for ${action} on ${resource}`,
       {
         role: context.role,
-        permissions: context.permissions,
+        permissionsCount: context.permissions?.length || 0,
         reason: context.reason,
         resourceType: this.extractResourceType(resource),
       },

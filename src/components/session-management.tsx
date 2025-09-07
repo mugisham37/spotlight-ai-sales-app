@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth, useUser } from "@clerk/nextjs";
 import {
   Card,
@@ -22,14 +22,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+
 import { Separator } from "@/components/ui/separator";
 import {
   Monitor,
@@ -71,12 +64,7 @@ export function SessionManagement({ className = "" }: SessionManagementProps) {
   const [terminating, setTerminating] = useState<string | null>(null);
   const [terminatingAll, setTerminatingAll] = useState(false);
 
-  // Load user sessions
-  useEffect(() => {
-    loadSessions();
-  }, [user]);
-
-  const loadSessions = async () => {
+  const loadSessions = useCallback(async () => {
     if (!user) return;
 
     try {
@@ -129,7 +117,12 @@ export function SessionManagement({ className = "" }: SessionManagementProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
+
+  // Load user sessions
+  useEffect(() => {
+    loadSessions();
+  }, [loadSessions]);
 
   const getDeviceIcon = (userAgent: string) => {
     const ua = userAgent.toLowerCase();
@@ -275,8 +268,8 @@ export function SessionManagement({ className = "" }: SessionManagementProps) {
                     <AlertDialogTitle>Sign Out Everywhere?</AlertDialogTitle>
                     <AlertDialogDescription>
                       This will terminate all your active sessions and sign you
-                      out from all devices. You'll need to sign in again on each
-                      device.
+                      out from all devices. You&apos;ll need to sign in again on
+                      each device.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
@@ -407,8 +400,8 @@ export function SessionManagement({ className = "" }: SessionManagementProps) {
                         </AlertDialogTitle>
                         <AlertDialogDescription>
                           This will terminate all your other active sessions
-                          except the current one. You'll remain signed in on
-                          this device but will need to sign in again on other
+                          except the current one. You&apos;ll remain signed in
+                          on this device but will need to sign in again on other
                           devices.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
@@ -486,7 +479,7 @@ export function SessionManagement({ className = "" }: SessionManagementProps) {
             <div className="text-sm">
               <p className="font-medium text-amber-800 mb-1">Security Notice</p>
               <p className="text-amber-700">
-                If you see any sessions you don't recognize, terminate them
+                If you see any sessions you don&apos;t recognize, terminate them
                 immediately and consider changing your password. Always sign out
                 from shared or public devices.
               </p>

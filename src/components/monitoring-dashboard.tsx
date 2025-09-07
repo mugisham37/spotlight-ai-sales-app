@@ -12,14 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import {
-  AlertTriangle,
-  Activity,
-  Shield,
-  Clock,
-  Users,
-  Server,
-} from "lucide-react";
+import { AlertTriangle, Activity, Shield, Server } from "lucide-react";
 
 interface MonitoringStats {
   monitoring: {
@@ -54,7 +47,10 @@ interface SecurityEvent {
   ip: string;
   path: string;
   description: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<
+    string,
+    string | number | boolean | Date | null | undefined
+  >;
 }
 
 export function MonitoringDashboard() {
@@ -119,7 +115,9 @@ export function MonitoringDashboard() {
     return `${hours}h ${minutes}m`;
   };
 
-  const getSeverityColor = (severity: string) => {
+  const getSeverityColor = (
+    severity: string
+  ): "default" | "destructive" | "outline" | "secondary" => {
     switch (severity) {
       case "critical":
         return "destructive";
@@ -340,9 +338,7 @@ export function MonitoringDashboard() {
                       key={event.id}
                       className="flex items-start space-x-3 p-3 border rounded-lg"
                     >
-                      <Badge
-                        variant={getSeverityColor(event.severity) as unknown}
-                      >
+                      <Badge variant={getSeverityColor(event.severity)}>
                         {event.severity}
                       </Badge>
                       <div className="flex-1 min-w-0">

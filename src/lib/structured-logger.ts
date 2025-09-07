@@ -55,7 +55,18 @@ export interface AuthLogEntry extends BaseLogEntry {
     | "other_sessions_terminated"
     | "terminate_other_sessions_error"
     | "expired_sessions_cleanup"
-    | "expired_sessions_cleanup_error";
+    | "expired_sessions_cleanup_error"
+    | "brute_force_check_error"
+    | "login_success"
+    | "login_failure"
+    | "record_login_attempt_error"
+    | "clear_failed_attempts"
+    | "clear_failed_attempts_error"
+    | "lock_account_error"
+    | "unlock_account_error"
+    | "unusual_pattern_detection_error"
+    | "send_security_alert_error"
+    | "send_lockout_notification_error";
   email?: string;
   success: boolean;
   errorCode?: string;
