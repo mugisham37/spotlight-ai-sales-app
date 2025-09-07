@@ -14,7 +14,7 @@ export interface BaseLogEntry {
   component: string;
   requestId: string;
   userId?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface AuthLogEntry extends BaseLogEntry {
@@ -25,12 +25,42 @@ export interface AuthLogEntry extends BaseLogEntry {
     | "sign_out"
     | "token_refresh"
     | "password_reset"
-    | "mfa_verify";
+    | "mfa_verify"
+    | "secure_logout_start"
+    | "logout_terminate_sessions_failed"
+    | "secure_logout_complete"
+    | "secure_logout_error"
+    | "user_session_cleanup_start"
+    | "user_session_cleanup_complete"
+    | "user_session_cleanup_error"
+    | "session_refresh_start"
+    | "session_refresh_no_session"
+    | "session_refresh_user_not_found"
+    | "session_refresh_no_email"
+    | "session_refresh_success"
+    | "session_refresh_error"
+    | "session_validation_failed"
+    | "session_validation_success"
+    | "session_validation_error"
+    | "get_session_info_error"
+    | "force_session_refresh_start"
+    | "force_session_refresh_success"
+    | "force_session_refresh_failed"
+    | "force_session_refresh_error"
+    | "session_security_monitor_error"
+    | "get_user_sessions_error"
+    | "session_terminated"
+    | "session_termination_error"
+    | "other_sessions_terminated"
+    | "terminate_other_sessions_error"
+    | "expired_sessions_cleanup"
+    | "expired_sessions_cleanup_error";
   email?: string;
   success: boolean;
   errorCode?: string;
   ip?: string;
   userAgent?: string;
+  sessionId?: string;
 }
 
 export interface SecurityLogEntry extends BaseLogEntry {
@@ -40,12 +70,22 @@ export interface SecurityLogEntry extends BaseLogEntry {
     | "rate_limit"
     | "blocked_request"
     | "invalid_signature"
-    | "brute_force";
+    | "brute_force"
+    | "emergency_cleanup"
+    | "suspicious_login"
+    | "multiple_failed_attempts"
+    | "session_hijack_attempt"
+    | "concurrent_session_limit"
+    | "ip_location_change"
+    | "device_fingerprint_mismatch"
+    | "unusual_activity_pattern"
+    | "multiple_sessions";
   severity: "low" | "medium" | "high" | "critical";
   ip?: string;
   userAgent?: string;
   path?: string;
-  details?: Record<string, any>;
+  details?: Record<string, unknown>;
+  sessionId?: string;
 }
 
 export interface SystemLogEntry extends BaseLogEntry {
@@ -245,7 +285,7 @@ export class StructuredLogger {
     component: string,
     requestId: string,
     userId?: string,
-    metadata?: Record<string, any>
+    metadata?: Record<string, unknown>
   ): void {
     if (process.env.NODE_ENV === "development") {
       const entry: BaseLogEntry = {
@@ -268,7 +308,7 @@ export class StructuredLogger {
     component: string,
     requestId: string,
     userId?: string,
-    metadata?: Record<string, any>
+    metadata?: Record<string, unknown>
   ): void {
     const entry: BaseLogEntry = {
       level: LogLevel.INFO,
@@ -289,7 +329,7 @@ export class StructuredLogger {
     component: string,
     requestId: string,
     userId?: string,
-    metadata?: Record<string, any>
+    metadata?: Record<string, unknown>
   ): void {
     const entry: BaseLogEntry = {
       level: LogLevel.WARN,
@@ -311,7 +351,7 @@ export class StructuredLogger {
     requestId: string,
     error?: Error | AppError,
     userId?: string,
-    metadata?: Record<string, any>
+    metadata?: Record<string, unknown>
   ): void {
     const entry: BaseLogEntry = {
       level: LogLevel.ERROR,
@@ -344,7 +384,7 @@ export class StructuredLogger {
     duration: number,
     success: boolean,
     userId?: string,
-    metadata?: Record<string, any>
+    metadata?: Record<string, unknown>
   ): void {
     const level = success ? LogLevel.INFO : LogLevel.WARN;
     const message = `${operation} completed in ${duration}ms`;
@@ -566,7 +606,7 @@ export const logPerformance = (
   duration: number,
   success: boolean,
   userId?: string,
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 ) =>
   structuredLogger.logPerformance(
     operation,

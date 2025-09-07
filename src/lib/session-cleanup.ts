@@ -3,6 +3,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { structuredLogger } from "./structured-logger";
 import { MultiSessionManager } from "./session-security";
+import { LogLevel } from "./error-handler";
 
 export interface SessionCleanupOptions {
   clearLocalStorage?: boolean;
@@ -47,7 +48,7 @@ export class SessionCleanup {
 
       if (logActivity && userId) {
         structuredLogger.logAuth({
-          level: "info",
+          level: LogLevel.INFO,
           message: "Secure logout initiated",
           requestId,
           userId,
@@ -71,7 +72,7 @@ export class SessionCleanup {
         } catch (error) {
           if (logActivity) {
             structuredLogger.logAuth({
-              level: "warn",
+              level: LogLevel.WARN,
               message: "Failed to terminate other sessions during logout",
               requestId,
               userId,
@@ -105,7 +106,7 @@ export class SessionCleanup {
 
       if (logActivity && userId) {
         structuredLogger.logAuth({
-          level: "info",
+          level: LogLevel.INFO,
           message: "Secure logout completed",
           requestId,
           userId,
@@ -146,7 +147,7 @@ export class SessionCleanup {
 
       if (options.logActivity !== false) {
         structuredLogger.logAuth({
-          level: "error",
+          level: LogLevel.ERROR,
           message: "Secure logout failed",
           requestId,
           action: "secure_logout_error",
@@ -178,7 +179,7 @@ export class SessionCleanup {
 
     try {
       structuredLogger.logAuth({
-        level: "info",
+        level: LogLevel.INFO,
         message: "User session cleanup initiated",
         requestId,
         userId,
@@ -202,7 +203,7 @@ export class SessionCleanup {
       }
 
       structuredLogger.logAuth({
-        level: "info",
+        level: LogLevel.INFO,
         message: "User session cleanup completed",
         requestId,
         userId,
@@ -221,7 +222,7 @@ export class SessionCleanup {
       };
     } catch (error) {
       structuredLogger.logAuth({
-        level: "error",
+        level: LogLevel.ERROR,
         message: "User session cleanup failed",
         requestId,
         userId,
@@ -252,7 +253,7 @@ export class SessionCleanup {
 
     try {
       structuredLogger.logSecurity({
-        level: "warn",
+        level: LogLevel.WARN,
         message: "Emergency session cleanup initiated",
         requestId,
         userId,
@@ -267,7 +268,7 @@ export class SessionCleanup {
       const result = await this.cleanupUserSessions(userId);
 
       structuredLogger.logSecurity({
-        level: "warn",
+        level: LogLevel.WARN,
         message: "Emergency session cleanup completed",
         requestId,
         userId,
@@ -285,7 +286,7 @@ export class SessionCleanup {
       };
     } catch (error) {
       structuredLogger.logSecurity({
-        level: "error",
+        level: LogLevel.ERROR,
         message: "Emergency session cleanup failed",
         requestId,
         userId,

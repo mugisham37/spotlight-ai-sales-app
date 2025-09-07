@@ -69,10 +69,10 @@ export function useSessionManager(options?: {
     isRefreshing: false,
   });
 
-  const warningTimeoutRef = useRef<NodeJS.Timeout>();
-  const sessionTimeoutRef = useRef<NodeJS.Timeout>();
-  const refreshIntervalRef = useRef<NodeJS.Timeout>();
-  const activityCheckRef = useRef<NodeJS.Timeout>();
+  const warningTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
+  const sessionTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
+  const refreshIntervalRef = useRef<NodeJS.Timeout | undefined>(undefined);
+  const activityCheckRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const lastActivityRef = useRef<Date>(new Date());
 
   const warningTime = options?.warningTime || SESSION_CONFIG.WARNING_TIME;

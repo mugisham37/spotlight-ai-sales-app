@@ -92,7 +92,7 @@ export function SessionProvider({
     if (!sessionManager.isSessionExpiringSoon()) {
       setShowWarning(false);
     }
-  }, [sessionManager.sessionState.expiresAt]);
+  }, [sessionManager.sessionState.expiresAt, sessionManager]);
 
   const contextValue: SessionContextValue = {
     sessionState: sessionManager.sessionState,

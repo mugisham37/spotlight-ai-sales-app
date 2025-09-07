@@ -5,7 +5,6 @@ import {
   SecurityHeaderManager,
   RateLimitManager,
   SecurityValidator,
-  RATE_LIMIT_CONFIGS,
 } from "./lib/security-config";
 import { RequestMonitor, MiddlewarePerformanceHooks } from "./lib/monitoring";
 
@@ -26,15 +25,7 @@ const isProtectedApiRoute = createRouteMatcher([
   "/api/protected(.*)",
 ]);
 
-// Rate limiting identifiers
-function getRateLimitIdentifier(req: NextRequest): string {
-  const ip =
-    req.headers.get("x-forwarded-for") ||
-    req.headers.get("x-real-ip") ||
-    "unknown";
-  const userAgent = req.headers.get("user-agent") || "unknown";
-  return `${ip}:${userAgent.slice(0, 50)}`; // Limit user agent length for key
-}
+
 
 interface MiddlewareError extends Error {
   code?: string;

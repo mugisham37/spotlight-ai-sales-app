@@ -3,7 +3,7 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { structuredLogger } from "./structured-logger";
-import { ErrorResponseFormatter } from "./error-responses";
+import { LogLevel } from "./error-handler";
 
 export interface SessionRefreshResult {
   success: boolean;
@@ -45,7 +45,7 @@ export async function refreshSession(
 
     if (logActivity) {
       structuredLogger.logAuth({
-        level: "info",
+        level: LogLevel.INFO,
         message: "Session refresh attempt started",
         requestId,
         action: "session_refresh_start",
@@ -59,7 +59,7 @@ export async function refreshSession(
     if (!userId || !sessionId) {
       if (logActivity) {
         structuredLogger.logAuth({
-          level: "warn",
+          level: LogLevel.WARN,
           message: "Session refresh failed: No active session",
           requestId,
           action: "session_refresh_no_session",
@@ -90,7 +90,7 @@ export async function refreshSession(
     if (!user) {
       if (logActivity) {
         structuredLogger.logAuth({
-          level: "warn",
+          level: LogLevel.WARN,
           message: "Session refresh failed: User not found",
           requestId,
           userId,
@@ -117,7 +117,7 @@ export async function refreshSession(
     if (!email) {
       if (logActivity) {
         structuredLogger.logAuth({
-          level: "error",
+          level: LogLevel.ERROR,
           message: "Session refresh failed: User has no email",
           requestId,
           userId,
@@ -144,7 +144,7 @@ export async function refreshSession(
 
     if (logActivity) {
       structuredLogger.logAuth({
-        level: "info",
+        level: LogLevel.INFO,
         message: "Session refreshed successfully",
         requestId,
         userId: user.id,
@@ -186,7 +186,7 @@ export async function refreshSession(
 
     if (options.logActivity !== false) {
       structuredLogger.logAuth({
-        level: "error",
+        level: LogLevel.ERROR,
         message: "Session refresh error occurred",
         requestId,
         action: "session_refresh_error",
@@ -250,7 +250,7 @@ export async function validateSession(
     if (!userId || !sessionId) {
       if (logActivity) {
         structuredLogger.logAuth({
-          level: "warn",
+          level: LogLevel.WARN,
           message: "Session validation failed: No active session",
           requestId,
           action: "session_validation_failed",
@@ -273,7 +273,7 @@ export async function validateSession(
 
     if (logActivity) {
       structuredLogger.logAuth({
-        level: "info",
+        level: LogLevel.INFO,
         message: "Session validation successful",
         requestId,
         userId,
@@ -291,7 +291,7 @@ export async function validateSession(
   } catch (error) {
     if (options.logActivity !== false) {
       structuredLogger.logAuth({
-        level: "error",
+        level: LogLevel.ERROR,
         message: "Session validation error occurred",
         requestId,
         action: "session_validation_error",
@@ -337,7 +337,7 @@ export async function getSessionInfo(): Promise<{
     };
   } catch (error) {
     structuredLogger.logAuth({
-      level: "error",
+      level: LogLevel.ERROR,
       message: "Failed to get session info",
       requestId: crypto.randomUUID(),
       action: "get_session_info_error",
@@ -368,7 +368,7 @@ export async function isSessionExpiringSoon(
 
     const timeRemaining = sessionInfo.expiresAt.getTime() - Date.now();
     return timeRemaining > 0 && timeRemaining <= warningThreshold;
-  } catch (error) {
+  } catch (_error) {
     return false;
   }
 }
@@ -381,7 +381,7 @@ export async function forceSessionRefresh(): Promise<SessionRefreshResult> {
 
   try {
     structuredLogger.logAuth({
-      level: "info",
+      level: LogLevel.INFO,
       message: "Force session refresh initiated",
       requestId,
       action: "force_session_refresh_start",
@@ -397,7 +397,7 @@ export async function forceSessionRefresh(): Promise<SessionRefreshResult> {
 
     if (result.success) {
       structuredLogger.logAuth({
-        level: "info",
+        level: LogLevel.INFO,
         message: "Force session refresh completed successfully",
         requestId,
         userId: result.user?.clerkId,
@@ -406,7 +406,7 @@ export async function forceSessionRefresh(): Promise<SessionRefreshResult> {
       });
     } else {
       structuredLogger.logAuth({
-        level: "warn",
+        level: LogLevel.WARN,
         message: "Force session refresh failed",
         requestId,
         action: "force_session_refresh_failed",
@@ -420,7 +420,7 @@ export async function forceSessionRefresh(): Promise<SessionRefreshResult> {
     return result;
   } catch (error) {
     structuredLogger.logAuth({
-      level: "error",
+      level: LogLevel.ERROR,
       message: "Force session refresh error occurred",
       requestId,
       action: "force_session_refresh_error",

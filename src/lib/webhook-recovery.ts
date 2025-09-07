@@ -1,5 +1,4 @@
 import { webhookLogger } from "./webhook-logger";
-import { databaseRetryManager } from "./webhook-retry";
 import { PrismaClient } from "@prisma/client";
 
 interface RecoveryContext {

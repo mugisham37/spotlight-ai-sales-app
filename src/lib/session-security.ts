@@ -1,10 +1,9 @@
 "use server";
 
-import { auth, currentUser } from "@clerk/nextjs/server";
+import { auth } from "@clerk/nextjs/server";
 import { headers } from "next/headers";
-import prismaClient from "./prismaClient";
 import { structuredLogger } from "./structured-logger";
-import { ErrorResponseFormatter } from "./error-responses";
+import { LogLevel } from "./error-handler";
 
 export interface SessionSecurityEvent {
   id: string;
@@ -15,7 +14,7 @@ export interface SessionSecurityEvent {
   ipAddress: string;
   userAgent: string;
   location?: string;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
   timestamp: Date;
   resolved: boolean;
 }
@@ -136,7 +135,7 @@ export class SessionSecurityMonitor {
         );
 
         structuredLogger.logSecurity({
-          level: "warn",
+          level: LogLevel.WARN,
           message: "Suspicious session activity detected",
           requestId,
           userId,
@@ -152,9 +151,9 @@ export class SessionSecurityMonitor {
       }
 
       return result;
-    } catch (error) {
+    } catch (_error) {
       structuredLogger.logAuth({
-        level: "error",
+        level: LogLevel.ERROR,
         message: "Session security monitoring failed",
         requestId,
         action: "session_security_monitor_error",
@@ -184,7 +183,7 @@ export class SessionSecurityMonitor {
     try {
       // This would typically check active sessions in a session store
       // For now, we'll simulate the check
-      const activeSessions = await this.getActiveSessionCount(userId);
+      const activeSessions = await this.getActiveSessionCount();
 
       if (activeSessions > this.MAX_CONCURRENT_SESSIONS) {
         return {
@@ -216,7 +215,7 @@ export class SessionSecurityMonitor {
         severity: "low",
         recommendedActions: [],
       };
-    } catch (error) {
+    } catch (_error) {
       return {
         isSuspicious: false,
         reasons: [],
@@ -234,7 +233,7 @@ export class SessionSecurityMonitor {
     ipAddress: string
   ): Promise<SuspiciousActivityResult> {
     try {
-      const lastKnownLocation = await this.getLastKnownLocation(userId);
+      const lastKnownLocation = await this.getLastKnownLocation();
 
       if (!lastKnownLocation) {
         // First time login from this location
@@ -249,10 +248,7 @@ export class SessionSecurityMonitor {
 
       // In a real implementation, you would use a geolocation service
       // to determine if the location has changed significantly
-      const locationChanged = await this.hasLocationChanged(
-        lastKnownLocation,
-        ipAddress
-      );
+      const locationChanged = await this.hasLocationChanged();
 
       if (locationChanged) {
         await this.updateUserLocation(userId, ipAddress);
@@ -274,7 +270,7 @@ export class SessionSecurityMonitor {
         severity: "low",
         recommendedActions: [],
       };
-    } catch (error) {
+    } catch (_error) {
       return {
         isSuspicious: false,
         reasons: [],
@@ -292,7 +288,7 @@ export class SessionSecurityMonitor {
     userAgent: string
   ): Promise<SuspiciousActivityResult> {
     try {
-      const lastKnownDevice = await this.getLastKnownDevice(userId);
+      const lastKnownDevice = await this.getLastKnownDevice();
 
       if (!lastKnownDevice) {
         // First time login from this device
@@ -327,7 +323,7 @@ export class SessionSecurityMonitor {
         severity: "low",
         recommendedActions: [],
       };
-    } catch (error) {
+    } catch (_error) {
       return {
         isSuspicious: false,
         reasons: [],
@@ -344,10 +340,7 @@ export class SessionSecurityMonitor {
     userId: string
   ): Promise<SuspiciousActivityResult> {
     try {
-      const recentSessions = await this.getRecentSessionCount(
-        userId,
-        60 * 1000
-      ); // Last minute
+      const recentSessions = await this.getRecentSessionCount(); // Last minute
 
       if (recentSessions >= this.RAPID_SESSION_THRESHOLD) {
         return {
@@ -369,7 +362,7 @@ export class SessionSecurityMonitor {
         severity: "low",
         recommendedActions: [],
       };
-    } catch (error) {
+    } catch (_error) {
       return {
         isSuspicious: false,
         reasons: [],
@@ -387,10 +380,7 @@ export class SessionSecurityMonitor {
     sessionId: string
   ): Promise<SuspiciousActivityResult> {
     try {
-      const activityPattern = await this.analyzeActivityPattern(
-        userId,
-        sessionId
-      );
+      const activityPattern = await this.analyzeActivityPattern();
 
       if (activityPattern.isUnusual) {
         return {
@@ -410,7 +400,7 @@ export class SessionSecurityMonitor {
         severity: "low",
         recommendedActions: [],
       };
-    } catch (error) {
+    } catch (_error) {
       return {
         isSuspicious: false,
         reasons: [],
@@ -430,19 +420,19 @@ export class SessionSecurityMonitor {
     severity: SecuritySeverity,
     ipAddress: string,
     userAgent: string,
-    metadata: Record<string, any>
+    metadata: Record<string, unknown>
   ): Promise<void> {
     try {
       // In a real implementation, you would store this in a security events table
       structuredLogger.logSecurity({
         level:
           severity === "critical"
-            ? "error"
+            ? LogLevel.ERROR
             : severity === "high"
-            ? "warn"
-            : "info",
+            ? LogLevel.WARN
+            : LogLevel.INFO,
         message: `Session security event: ${eventType}`,
-        requestId: metadata.requestId || crypto.randomUUID(),
+        requestId: (metadata.requestId as string) || crypto.randomUUID(),
         userId,
         sessionId,
         eventType,
@@ -462,7 +452,7 @@ export class SessionSecurityMonitor {
   /**
    * Get active session count for user
    */
-  private static async getActiveSessionCount(userId: string): Promise<number> {
+  private static async getActiveSessionCount(): Promise<number> {
     // In a real implementation, this would query your session store
     // For now, we'll return a simulated count
     return Math.floor(Math.random() * 3) + 1;
@@ -471,9 +461,7 @@ export class SessionSecurityMonitor {
   /**
    * Get last known location for user
    */
-  private static async getLastKnownLocation(
-    userId: string
-  ): Promise<string | null> {
+  private static async getLastKnownLocation(): Promise<string | null> {
     // In a real implementation, this would query user's location history
     // For now, we'll return null to simulate first-time login
     return null;
@@ -493,10 +481,7 @@ export class SessionSecurityMonitor {
   /**
    * Check if location has changed significantly
    */
-  private static async hasLocationChanged(
-    lastLocation: string,
-    currentIp: string
-  ): Promise<boolean> {
+  private static async hasLocationChanged(): Promise<boolean> {
     // In a real implementation, this would use geolocation services
     // For now, we'll return false to avoid false positives
     return false;
@@ -505,9 +490,7 @@ export class SessionSecurityMonitor {
   /**
    * Get last known device for user
    */
-  private static async getLastKnownDevice(
-    userId: string
-  ): Promise<string | null> {
+  private static async getLastKnownDevice(): Promise<string | null> {
     // In a real implementation, this would query user's device history
     return null;
   }
@@ -539,10 +522,7 @@ export class SessionSecurityMonitor {
   /**
    * Get recent session count
    */
-  private static async getRecentSessionCount(
-    userId: string,
-    timeWindow: number
-  ): Promise<number> {
+  private static async getRecentSessionCount(): Promise<number> {
     // In a real implementation, this would query session creation history
     return 0;
   }
@@ -550,10 +530,7 @@ export class SessionSecurityMonitor {
   /**
    * Analyze activity pattern
    */
-  private static async analyzeActivityPattern(
-    userId: string,
-    sessionId: string
-  ): Promise<{
+  private static async analyzeActivityPattern(): Promise<{
     isUnusual: boolean;
     reasons: string[];
     severity: SecuritySeverity;
@@ -600,7 +577,7 @@ export class MultiSessionManager {
       ];
     } catch (error) {
       structuredLogger.logAuth({
-        level: "error",
+        level: LogLevel.ERROR,
         message: "Failed to get user sessions",
         requestId: crypto.randomUUID(),
         userId,
@@ -628,7 +605,7 @@ export class MultiSessionManager {
     try {
       // In a real implementation, this would invalidate the session
       structuredLogger.logAuth({
-        level: "info",
+        level: LogLevel.INFO,
         message: "Session terminated by user",
         requestId,
         userId,
@@ -653,7 +630,7 @@ export class MultiSessionManager {
       return true;
     } catch (error) {
       structuredLogger.logAuth({
-        level: "error",
+        level: LogLevel.ERROR,
         message: "Failed to terminate session",
         requestId,
         userId,
@@ -694,7 +671,7 @@ export class MultiSessionManager {
       }
 
       structuredLogger.logAuth({
-        level: "info",
+        level: LogLevel.INFO,
         message: "Other sessions terminated",
         requestId,
         userId,
@@ -710,7 +687,7 @@ export class MultiSessionManager {
       return terminatedCount;
     } catch (error) {
       structuredLogger.logAuth({
-        level: "error",
+        level: LogLevel.ERROR,
         message: "Failed to terminate other sessions",
         requestId,
         userId,
@@ -738,7 +715,7 @@ export class MultiSessionManager {
       const cleanedCount = 0; // Simulated
 
       structuredLogger.logAuth({
-        level: "info",
+        level: LogLevel.INFO,
         message: "Expired sessions cleaned up",
         requestId,
         action: "expired_sessions_cleanup",
@@ -751,7 +728,7 @@ export class MultiSessionManager {
       return cleanedCount;
     } catch (error) {
       structuredLogger.logAuth({
-        level: "error",
+        level: LogLevel.ERROR,
         message: "Failed to clean up expired sessions",
         requestId,
         action: "expired_sessions_cleanup_error",
