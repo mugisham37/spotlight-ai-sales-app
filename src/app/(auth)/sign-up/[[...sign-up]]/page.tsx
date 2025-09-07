@@ -1,11 +1,11 @@
 import React from "react";
-import { SignIn } from "@clerk/nextjs";
+import { SignUp } from "@clerk/nextjs";
 
-const SignInPage = () => {
+const SignUpPage = () => {
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-50">
       <div className="w-full max-w-md">
-        <SignIn
+        <SignUp
           appearance={{
             elements: {
               formButtonPrimary:
@@ -16,11 +16,11 @@ const SignInPage = () => {
             },
           }}
           redirectUrl="/callback"
-          signUpUrl="/sign-up"
+          signInUrl="/sign-in"
         />
       </div>
     </div>
   );
 };
 
-export default SignInPage;
+export default SignUpPage;
