@@ -2,26 +2,25 @@
 import { NextRequest, NextResponse } from "next/server";
 import { RequestMonitor } from "@/lib/monitoring";
 import { RateLimitManager } from "@/lib/security-config";
-import { uptime } from "os";
 
 // GET /api/health - System health check
 export async function GET(req: NextRequest) {
   const startTime = Date.now();
   const requestId = crypto.randomUUID();
 
-  try {
-    // Basic health checks (Edge Runtime compatible)
-    let uptime = 0;
-    let memory = { heapUsed: 0, heapTotal: 0, external: 0, rss: 0 };
-    let version = "unknown";
+  // Basic health checks (Edge Runtime compatible)
+  let uptime = 0;
+  let memory = { heapUsed: 0, heapTotal: 0, external: 0, rss: 0 };
+  let version = "unknown";
 
+  try {
     try {
       if (typeof process !== "undefined") {
         uptime = process.uptime?.() || 0;
         memory = process.memoryUsage?.() || memory;
         version = process.version || "unknown";
       }
-    } catch (error) {
+    } catch {
       // Edge Runtime fallbacks
     }
 
@@ -120,7 +119,7 @@ export async function GET(req: NextRequest) {
 }
 
 // HEAD /api/health - Lightweight health check
-export async function HEAD(req: NextRequest) {
+export async function HEAD() {
   const startTime = Date.now();
   const processingTime = Date.now() - startTime;
 
@@ -135,7 +134,7 @@ export async function HEAD(req: NextRequest) {
 }
 
 // OPTIONS /api/health - CORS preflight
-export async function OPTIONS(req: NextRequest) {
+export async function OPTIONS() {
   return new NextResponse(null, {
     status: 200,
     headers: {

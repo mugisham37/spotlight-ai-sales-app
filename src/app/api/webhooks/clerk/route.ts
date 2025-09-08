@@ -42,11 +42,9 @@ export async function POST(
         "Missing webhook headers",
         { webhookType: "clerk", requestId },
         {
-          headers: {
-            "svix-id": !!svix_id,
-            "svix-timestamp": !!svix_timestamp,
-            "svix-signature": !!svix_signature,
-          },
+          svixIdPresent: !!svix_id,
+          svixTimestampPresent: !!svix_timestamp,
+          svixSignaturePresent: !!svix_signature,
         }
       );
 
@@ -107,7 +105,7 @@ export async function POST(
 
     // Verify the payload with the headers
     try {
-      const svixHeaders = {
+      const svixHeaders: Record<string, string> = {
         "svix-id": svix_id,
         "svix-timestamp": svix_timestamp,
         "svix-signature": svix_signature,
@@ -249,10 +247,8 @@ export async function POST(
           processingTime,
           totalTime,
           eventType: evt.type,
-          errorDetails: {
-            name: error instanceof Error ? error.name : "UnknownError",
-            stack: error instanceof Error ? error.stack : undefined,
-          },
+          errorName: error instanceof Error ? error.name : "UnknownError",
+          errorStack: error instanceof Error ? error.stack : null,
         }
       );
 

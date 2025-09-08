@@ -24,5 +24,16 @@
   "tailwindCSS.experimental.classRegex": [
     ["cva\\(([^)]*)\\)", "[\"'`]([^\"'`]*).*?[\"'`]"],
     ["cx\\(([^)]*)\\)", "(?:'|\"|`)([^']*)(?:'|\"|`)"]
+  ],
+  "cSpell.enabled": true,
+  "cSpell.import": ["./cspell.json"],
+  "cSpell.words": [
+    "svix",
+    "Svix",
+    "webhook",
+    "webhooks",
+    "Clerk",
+    "clerkId",
+    "Prisma"
   ]
 }
