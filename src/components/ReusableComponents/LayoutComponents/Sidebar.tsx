@@ -16,36 +16,34 @@ import { sidebarData } from "@/lib/data";
 const Sidebar = () => {
   const pathname = usePathname();
   return (
-    <div className="w-18 sm:w-28 h-screen sticky top-0 py-10 px-2 sm:px-6 border bg-background border-border flex flex-col items-center justify-start gap-10">
-      <div>
-        {/* Logo: spotlight triangle icon */}
-        <Image
-          src="/assets/icons/spotlight-triangle.svg"
-          alt="Spotlight Logo"
-          width={32}
-          height={32}
-          className="w-8 h-8"
-        />
-      </div>
-      <div className="w-full h-full justify-between items-center flex flex-col">
-        <div className="flex flex-col gap-4">
+    <div className="w-16 sm:w-20 h-screen sticky top-0 py-6 px-2 border-r bg-background border-border flex flex-col items-center justify-between">
+      {/* Logo Section */}
+      <div className="flex flex-col items-center gap-6">
+        <div className="p-2">
+          <Image
+            src="/assets/icons/spotlight-triangle.svg"
+            alt="Spotlight Logo"
+            width={24}
+            height={24}
+            className="w-6 h-6"
+          />
+        </div>
+        
+        {/* Navigation Links */}
+        <div className="flex flex-col gap-3">
           {sidebarData.map((item) => (
             <TooltipProvider key={item.id}>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Link
                     href={item.link}
-                    className={`flex items-center gap-2 cursor-pointer rounded-lg p-2 ${
+                    className={`flex items-center justify-center p-2 rounded-lg transition-colors ${
                       pathname.includes(item.link)
-                        ? "bg-primary/10 text-primary"
-                        : "hover:bg-muted"
+                        ? "bg-primary/10 text-primary border border-primary/20"
+                        : "hover:bg-muted text-muted-foreground hover:text-foreground"
                     }`}
                   >
-                    <item.icon
-                      className={`w-4 h-4 ${
-                        pathname.includes(item.link) ? "" : "opacity-80"
-                      }`}
-                    />
+                    <item.icon className="w-4 h-4" />
                   </Link>
                 </TooltipTrigger>
                 <TooltipContent side="right">
@@ -55,7 +53,11 @@ const Sidebar = () => {
             </TooltipProvider>
           ))}
         </div>
-        <UserButton />
+      </div>
+      
+      {/* User Section */}
+      <div className="flex flex-col items-center gap-4">
+        <UserButton afterSignOutUrl="/sign-in" />
       </div>
     </div>
   );

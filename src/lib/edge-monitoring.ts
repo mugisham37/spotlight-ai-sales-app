@@ -19,8 +19,19 @@ export const isEdgeRuntime = () => {
       return true;
     }
 
-    // More robust Node.js detection
-    return !(process && process.versions && process.versions.node);
+    // Safe Node.js detection without accessing process.versions directly
+    try {
+      const proc = process as NodeJS.Process | undefined;
+      const hasNodeVersions =
+        typeof proc === "object" &&
+        proc !== null &&
+        typeof proc.versions === "object" &&
+        proc.versions !== null &&
+        typeof proc.versions.node === "string";
+      return !hasNodeVersions;
+    } catch {
+      return true;
+    }
   } catch {
     // If any error occurs, assume we're in Edge Runtime
     return true;
