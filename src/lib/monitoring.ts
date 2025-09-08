@@ -478,22 +478,39 @@ export class RequestMonitor {
     let memoryUsage = 0;
     let uptime = 0;
 
+    // Edge Runtime compatible memory and uptime tracking
     try {
-      if (typeof process !== "undefined" && process.memoryUsage) {
+      // Check if we're in Node.js runtime (not Edge Runtime)
+      if (
+        typeof process !== "undefined" &&
+        process.versions &&
+        process.versions.node &&
+        process.memoryUsage
+      ) {
         const memory = process.memoryUsage();
         memoryUsage = memory.heapUsed;
+      } else {
+        // Edge Runtime fallback - use performance API
+        memoryUsage = 0; // Not available in Edge Runtime
       }
     } catch {
-      // Edge Runtime doesn't support process.memoryUsage()
       memoryUsage = 0;
     }
 
     try {
-      if (typeof process !== "undefined" && process.uptime) {
+      // Check if we're in Node.js runtime (not Edge Runtime)
+      if (
+        typeof process !== "undefined" &&
+        process.versions &&
+        process.versions.node &&
+        process.uptime
+      ) {
         uptime = process.uptime();
+      } else {
+        // Edge Runtime fallback - use performance API
+        uptime = performance.now() / 1000; // Convert to seconds
       }
     } catch {
-      // Edge Runtime doesn't support process.uptime()
       uptime = 0;
     }
 

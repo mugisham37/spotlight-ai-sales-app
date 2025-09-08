@@ -132,14 +132,33 @@ const nextConfig: NextConfig = {
     },
     // Enable optimized package imports for better tree shaking
     optimizePackageImports: ["@clerk/nextjs", "lucide-react"],
-    // Enable partial prerendering for better performance
-    ppr: true,
+    // Enable Turbopack for better development performance
+    turbo: {
+      // Configure Turbopack memory limits
+      memoryLimit: 4096,
+    },
   },
 
-  // Webpack configuration for security and performance
+  // Turbopack configuration (only for development)
+  ...(process.env.NODE_ENV === "development" && {
+    turbo: {
+      rules: {
+        // Configure Turbopack for better TypeScript handling
+        "*.ts": ["swc-loader"],
+        "*.tsx": ["swc-loader"],
+      },
+    },
+  }),
+
+  // Webpack configuration for production builds only
   webpack: (config, { dev, isServer }) => {
-    // Security-related webpack configurations
-    if (!dev && !isServer) {
+    // Only apply webpack config in production (Turbopack handles dev)
+    if (dev) {
+      return config;
+    }
+
+    // Security-related webpack configurations for production
+    if (!isServer) {
       // Remove source maps in production for security
       config.devtool = false;
 
@@ -176,7 +195,7 @@ const nextConfig: NextConfig = {
       };
     }
 
-    // Performance optimizations for all environments
+    // Performance optimizations for production
     config.resolve.alias = {
       ...config.resolve.alias,
       // Optimize React imports

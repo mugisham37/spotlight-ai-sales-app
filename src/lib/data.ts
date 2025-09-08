@@ -25,13 +25,13 @@ export const sidebarData: SidebarItem[] = [
     id: 2,
     title: "Webinars",
     icon: Users,
-    link: "/webinars",
+    link: "/webinar",
   },
   {
     id: 3,
     title: "Leads",
     icon: UserCheck,
-    link: "/lead",
+    link: "/leads",
   },
   {
     id: 4,

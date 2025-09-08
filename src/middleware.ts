@@ -7,6 +7,10 @@ import {
   SecurityValidator,
 } from "./lib/security-config";
 import { RequestMonitor, MiddlewarePerformanceHooks } from "./lib/monitoring";
+import {
+  EdgePerformanceMonitor,
+  EdgeRequestMonitor,
+} from "./lib/edge-monitoring";
 
 // Define route matchers for different protection levels
 const isPublicRoute = createRouteMatcher([
@@ -24,8 +28,6 @@ const isProtectedApiRoute = createRouteMatcher([
   "/api/user(.*)",
   "/api/protected(.*)",
 ]);
-
-
 
 interface MiddlewareError extends Error {
   code?: string;
@@ -126,13 +128,13 @@ export default clerkMiddleware(async (auth, req) => {
   const clientInfo = getClientInfo(req);
   const requestId = crypto.randomUUID();
 
-  // Start performance monitoring
-  const performanceMark = MiddlewarePerformanceHooks.markStart(
+  // Start performance monitoring (Edge Runtime compatible)
+  const performanceMark = EdgePerformanceMonitor.markStart(
     `request-${requestId}`
   );
 
-  // Log incoming request with comprehensive monitoring
-  const requestLog = RequestMonitor.logRequest(req, requestId);
+  // Log incoming request with comprehensive monitoring (Edge Runtime compatible)
+  const requestLog = EdgeRequestMonitor.logRequest(req, requestId);
 
   try {
     // Handle CORS preflight requests
@@ -254,19 +256,16 @@ export default clerkMiddleware(async (auth, req) => {
         rateLimit
       );
 
-      // Update request log with rate limit response
+      // Update request log with rate limit response (Edge Runtime compatible)
       const processingTime = Date.now() - startTime;
-      RequestMonitor.updateRequestLog(
+      EdgeRequestMonitor.updateRequestLog(
         requestId,
         429,
         processingTime,
         undefined,
         rateLimit.remaining
       );
-      MiddlewarePerformanceHooks.markEnd(
-        `request-${requestId}`,
-        performanceMark
-      );
+      EdgePerformanceMonitor.markEnd(`request-${requestId}`, performanceMark);
 
       return createSecureResponse(rateLimitedResponse, req);
     }
@@ -315,13 +314,10 @@ export default clerkMiddleware(async (auth, req) => {
           { status: 401 }
         );
 
-        // Update request log with error response
+        // Update request log with error response (Edge Runtime compatible)
         const processingTime = Date.now() - startTime;
-        RequestMonitor.updateRequestLog(requestId, 401, processingTime);
-        MiddlewarePerformanceHooks.markEnd(
-          `request-${requestId}`,
-          performanceMark
-        );
+        EdgeRequestMonitor.updateRequestLog(requestId, 401, processingTime);
+        EdgePerformanceMonitor.markEnd(`request-${requestId}`, performanceMark);
 
         return createSecureResponse(response, req);
       }
@@ -515,16 +511,16 @@ export default clerkMiddleware(async (auth, req) => {
     );
     const secureResponse = createSecureResponse(responseWithRateLimit, req);
 
-    // Log successful request completion with enhanced monitoring
+    // Log successful request completion with enhanced monitoring (Edge Runtime compatible)
     const processingTime = Date.now() - startTime;
-    RequestMonitor.updateRequestLog(
+    EdgeRequestMonitor.updateRequestLog(
       requestId,
       200,
       processingTime,
       undefined,
       rateLimit.remaining
     );
-    MiddlewarePerformanceHooks.markEnd(`request-${requestId}`, performanceMark);
+    EdgePerformanceMonitor.markEnd(`request-${requestId}`, performanceMark);
 
     if (processingTime > 1000) {
       // Log slow requests to both systems
@@ -566,9 +562,9 @@ export default clerkMiddleware(async (auth, req) => {
     const processingTime = Date.now() - startTime;
     const statusCode = middlewareError.status || 500;
 
-    // Update request log with error details
-    RequestMonitor.updateRequestLog(requestId, statusCode, processingTime);
-    MiddlewarePerformanceHooks.markEnd(`request-${requestId}`, performanceMark);
+    // Update request log with error details (Edge Runtime compatible)
+    EdgeRequestMonitor.updateRequestLog(requestId, statusCode, processingTime);
+    EdgePerformanceMonitor.markEnd(`request-${requestId}`, performanceMark);
 
     // Log to existing logger
     AuthLogger.error(
