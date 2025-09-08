@@ -606,7 +606,8 @@ export class ErrorHandler {
       case LogLevel.ERROR:
         // Only log security errors in production to reduce development noise
         if (
-          entry.category === "security" &&
+          (entry.error instanceof SecurityError ||
+            (entry.error as AppError)?.type === ErrorType.SECURITY) &&
           process.env.NODE_ENV !== "production"
         ) {
           console.warn(`[SECURITY] ${entry.message}`);
