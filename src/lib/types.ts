@@ -33,6 +33,7 @@ export type SecurityEventType =
   | "account_unlocked"
   | "unusual_pattern"
   | "security_alert"
+  | "unusual_login_alert"
   | "lockout_notification";
 
 // Session security event types

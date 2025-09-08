@@ -67,6 +67,7 @@ export interface AuthLogEntry extends BaseLogEntry {
     | "unlock_account_error"
     | "unusual_pattern_detection_error"
     | "send_security_alert_error"
+    | "send_unusual_login_alert_error"
     | "send_lockout_notification_error"
     | "error_display"
     | "error_retry"

@@ -46,7 +46,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Prepare response data based on type
-    let responseData: any = {};
+    let responseData: Record<string, unknown> = {};
 
     switch (type) {
       case "stats":
@@ -76,7 +76,9 @@ export async function GET(req: NextRequest) {
       case "auth":
       case "all":
         // For these types, use the export functionality
-        const exportData = RequestMonitor.exportLogs(type as any);
+        const exportData = RequestMonitor.exportLogs(
+          type as "requests" | "auth" | "all"
+        );
         if (format === "raw") {
           return new NextResponse(exportData, {
             headers: {
@@ -197,7 +199,7 @@ export async function POST(req: NextRequest) {
 }
 
 // OPTIONS /api/monitoring - CORS preflight
-export async function OPTIONS(req: NextRequest) {
+export async function OPTIONS() {
   return new NextResponse(null, {
     status: 200,
     headers: {

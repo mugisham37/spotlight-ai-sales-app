@@ -10,7 +10,7 @@ import {
   UnusualPatternDetector,
   SecurityAlerts,
 } from "@/lib/brute-force-protection";
-import { SessionSecurityMonitor } from "@/lib/session-security";
+import { monitorSessionSecurity } from "@/lib/session-security";
 
 interface User {
   id: string;
@@ -244,10 +244,14 @@ export async function onAuthenticateUser(): Promise<AuthResponse> {
 
         if (patternCheck.isUnusual) {
           // Send security alert for unusual patterns
-          await SecurityAlerts.sendUnusualLoginAlert(
+          await SecurityAlerts.sendSecurityAlert(
             userExists.id,
-            patternCheck.patterns,
-            patternCheck.severity
+            "unusual_pattern",
+            {
+              patterns: patternCheck.patterns,
+              severity: patternCheck.severity,
+              timestamp: new Date(),
+            }
           );
 
           structuredLogger.logSecurity({
@@ -285,9 +289,7 @@ export async function onAuthenticateUser(): Promise<AuthResponse> {
       try {
         // This would typically be called with the actual session ID
         const sessionId = crypto.randomUUID(); // Placeholder
-        const securityResult = await SessionSecurityMonitor.monitorSession(
-          sessionId
-        );
+        const securityResult = await monitorSessionSecurity(sessionId);
 
         if (securityResult.isSuspicious) {
           structuredLogger.logSecurity({
