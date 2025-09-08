@@ -593,16 +593,27 @@ export class ErrorHandler {
         }
         break;
       case LogLevel.INFO:
-        console.log(formattedMessage);
-        console.log("INFO_STRUCTURED:", JSON.stringify(logData));
+        // Reduce INFO logging noise in development
+        if (process.env.NODE_ENV === "production") {
+          console.log(formattedMessage);
+          console.log("INFO_STRUCTURED:", JSON.stringify(logData));
+        }
         break;
       case LogLevel.WARN:
         console.warn(formattedMessage);
         console.warn("WARN_STRUCTURED:", JSON.stringify(logData));
         break;
       case LogLevel.ERROR:
-        console.error(formattedMessage);
-        console.error("ERROR_STRUCTURED:", JSON.stringify(logData));
+        // Only log security errors in production to reduce development noise
+        if (
+          entry.category === "security" &&
+          process.env.NODE_ENV !== "production"
+        ) {
+          console.warn(`[SECURITY] ${entry.message}`);
+        } else {
+          console.error(formattedMessage);
+          console.error("ERROR_STRUCTURED:", JSON.stringify(logData));
+        }
         break;
       case LogLevel.FATAL:
         console.error(formattedMessage);

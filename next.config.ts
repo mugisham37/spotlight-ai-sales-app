@@ -132,23 +132,10 @@ const nextConfig: NextConfig = {
     },
     // Enable optimized package imports for better tree shaking
     optimizePackageImports: ["@clerk/nextjs", "lucide-react"],
-    // Enable Turbopack for better development performance
-    turbo: {
-      // Configure Turbopack memory limits
-      memoryLimit: 4096,
-    },
   },
 
-  // Turbopack configuration (only for development)
-  ...(process.env.NODE_ENV === "development" && {
-    turbo: {
-      rules: {
-        // Configure Turbopack for better TypeScript handling
-        "*.ts": ["swc-loader"],
-        "*.tsx": ["swc-loader"],
-      },
-    },
-  }),
+  // Turbopack configuration is handled automatically by Next.js 15
+  // No manual configuration needed for TypeScript files
 
   // Webpack configuration for production builds only
   webpack: (config, { dev, isServer }) => {

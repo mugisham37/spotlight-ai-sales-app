@@ -11,64 +11,24 @@ const isPublicRoute = createRouteMatcher([
 ]);
 
 export default clerkMiddleware(async (auth, req) => {
-  try {
-    // Handle CORS preflight requests
-    if (req.method === "OPTIONS") {
-      return new NextResponse(null, {
-        status: 200,
-        headers: {
-          "Access-Control-Allow-Origin": "*",
-          "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-          "Access-Control-Allow-Headers": "Content-Type, Authorization",
-        },
-      });
-    }
-
-    // Check if route needs protection
-    if (!isPublicRoute(req)) {
-      try {
-        // Protect the route
-        await auth.protect();
-      } catch (authError) {
-        console.log(
-          `Authentication failed for ${req.nextUrl.pathname}:`,
-          authError
-        );
-
-        // For API routes, return JSON error
-        if (req.nextUrl.pathname.startsWith("/api/")) {
-          return NextResponse.json(
-            { error: "Authentication required" },
-            { status: 401 }
-          );
-        }
-
-        // For page routes, redirect to sign-in
-        if (req.nextUrl.pathname !== "/sign-in") {
-          const signInUrl = new URL("/sign-in", req.url);
-          signInUrl.searchParams.set("redirect_url", req.nextUrl.pathname);
-          return NextResponse.redirect(signInUrl);
-        }
-      }
-    }
-
-    // Allow the request to proceed
-    return NextResponse.next();
-  } catch (error) {
-    console.error("Middleware error:", error);
-
-    // For API routes, return JSON error
-    if (req.nextUrl.pathname.startsWith("/api/")) {
-      return NextResponse.json(
-        { error: "Internal server error" },
-        { status: 500 }
-      );
-    }
-
-    // For page routes, redirect to sign-in
-    const signInUrl = new URL("/sign-in", req.url);
-    return NextResponse.redirect(signInUrl);
+  // Handle CORS preflight requests
+  if (req.method === "OPTIONS") {
+    return new NextResponse(null, {
+      status: 200,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization",
+      },
+    });
   }
+
+  // Check if route needs protection
+  if (!isPublicRoute(req)) {
+    await auth.protect();
+  }
+
+  return NextResponse.next();
 });
 
 export const config = {

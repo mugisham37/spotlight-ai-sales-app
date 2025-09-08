@@ -9,34 +9,33 @@ type Props = {
 };
 const Layout = async ({ children }: Props) => {
   try {
-    const userExists = await onAuthenticateUser();
+    // Only run full authentication in production
+    // In development, rely on Clerk middleware for protection
+    if (process.env.NODE_ENV === "production") {
+      const userExists = await onAuthenticateUser();
 
-    if (!userExists.user) {
-      console.log("User not authenticated, redirecting to sign-in");
-      redirect("/sign-in");
+      if (!userExists.user) {
+        redirect("/sign-in");
+      }
     }
-
-    console.log("User authenticated, rendering protected layout");
   } catch (error) {
     console.error("Error in protected layout:", error);
     redirect("/sign-in");
   }
-  
+
   return (
     <div className="flex h-screen w-full overflow-hidden bg-background">
       {/* Sidebar */}
       <Sidebar />
-      
+
       {/* Main Content Area */}
       <div className="flex flex-col flex-1 min-w-0">
         {/* Header */}
         <Header />
-        
+
         {/* Page Content */}
         <main className="flex-1 overflow-auto p-6">
-          <div className="mx-auto max-w-7xl">
-            {children}
-          </div>
+          <div className="mx-auto max-w-7xl">{children}</div>
         </main>
       </div>
     </div>

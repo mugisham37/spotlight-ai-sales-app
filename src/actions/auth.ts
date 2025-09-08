@@ -285,44 +285,47 @@ export async function onAuthenticateUser(): Promise<AuthResponse> {
         });
       }
 
-      // Monitor session security
-      try {
-        // This would typically be called with the actual session ID
-        const sessionId = crypto.randomUUID(); // Placeholder
-        const securityResult = await monitorSessionSecurity(sessionId);
+      // Skip session monitoring in development to avoid false positives
+      if (process.env.NODE_ENV === "production") {
+        try {
+          // This would typically be called with the actual session ID from Clerk
+          const sessionId = crypto.randomUUID(); // Placeholder - should be from Clerk session
+          const securityResult = await monitorSessionSecurity(sessionId);
 
-        if (securityResult.isSuspicious) {
-          structuredLogger.logSecurity({
+          if (securityResult.isSuspicious) {
+            structuredLogger.logSecurity({
+              level: LogLevel.WARN,
+              message:
+                "Suspicious session activity detected during authentication",
+              requestId,
+              userId: userExists.id,
+              sessionId,
+              eventType: "suspicious_activity",
+              severity: securityResult.severity,
+              metadata: {
+                reasons: securityResult.reasons.join(", "),
+                recommendedActions:
+                  securityResult.recommendedActions.join(", "),
+              },
+            });
+          }
+        } catch (sessionError) {
+          // Don't fail authentication due to session monitoring errors
+          structuredLogger.logAuth({
             level: LogLevel.WARN,
-            message:
-              "Suspicious session activity detected during authentication",
+            message: "Session monitoring failed during authentication",
             requestId,
             userId: userExists.id,
-            sessionId,
-            eventType: "suspicious_activity",
-            severity: securityResult.severity,
+            action: "session_monitoring_error",
+            success: false,
             metadata: {
-              reasons: securityResult.reasons.join(", "),
-              recommendedActions: securityResult.recommendedActions.join(", "),
+              errorMessage:
+                sessionError instanceof Error
+                  ? sessionError.message
+                  : "Unknown error",
             },
           });
         }
-      } catch (sessionError) {
-        // Don't fail authentication due to session monitoring errors
-        structuredLogger.logAuth({
-          level: LogLevel.WARN,
-          message: "Session monitoring failed during authentication",
-          requestId,
-          userId: userExists.id,
-          action: "session_monitoring_error",
-          success: false,
-          metadata: {
-            errorMessage:
-              sessionError instanceof Error
-                ? sessionError.message
-                : "Unknown error",
-          },
-        });
       }
 
       structuredLogger.logAuth({

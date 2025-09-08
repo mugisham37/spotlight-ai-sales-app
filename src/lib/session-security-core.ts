@@ -68,6 +68,16 @@ export class SessionSecurityMonitor {
         };
       }
 
+      // Skip intensive monitoring in development
+      if (process.env.NODE_ENV !== "production") {
+        return {
+          isSuspicious: false,
+          reasons: [],
+          severity: "low",
+          recommendedActions: [],
+        };
+      }
+
       const headersList = await headers();
       const ipAddress =
         headersList.get("x-forwarded-for") ||
@@ -121,7 +131,7 @@ export class SessionSecurityMonitor {
         recommendedActions: [...new Set(recommendedActions)], // Remove duplicates
       };
 
-      // Log security monitoring result
+      // Log security monitoring result (only in production)
       if (result.isSuspicious) {
         await this.logSecurityEvent(
           userId,
@@ -138,7 +148,7 @@ export class SessionSecurityMonitor {
         );
 
         structuredLogger.logSecurity({
-          level: LogLevel.WARN,
+          level: LogLevel.INFO, // Changed from WARN to INFO to reduce noise
           message: "Suspicious session activity detected",
           requestId,
           userId,
@@ -156,7 +166,7 @@ export class SessionSecurityMonitor {
       return result;
     } catch (error) {
       structuredLogger.logAuth({
-        level: LogLevel.ERROR,
+        level: LogLevel.WARN, // Changed from ERROR to WARN
         message: "Session security monitoring failed",
         requestId,
         action: "session_security_monitor_error",
