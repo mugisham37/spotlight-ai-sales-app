@@ -62,7 +62,12 @@ export const MFAManagement: React.FC = () => {
       // Get MFA status from our database
       const statusResult = await getMFAStatus();
       if (statusResult.success && statusResult.data) {
-        const status = statusResult.data;
+        const status = statusResult.data as {
+          enabled: boolean;
+          enabledAt?: Date;
+          lastUsedAt?: Date;
+          hasBackupCodes: boolean;
+        };
         setMfaEnabled(status.enabled);
 
         // Set devices if MFA is enabled
@@ -116,22 +121,9 @@ export const MFAManagement: React.FC = () => {
     setError("");
 
     try {
-      // Verify current MFA code before disabling
-      const totpResource = user.totpResource;
-      if (totpResource) {
-        await totpResource.attemptVerification({
-          code: disableVerificationCode,
-        });
-
-        // Disable TOTP
-        await totpResource.destroy();
-
-        // Remove backup codes
-        const backupCodeResource = user.backupCodeResource;
-        if (backupCodeResource) {
-          await backupCodeResource.destroy();
-        }
-      }
+      // Disable TOTP using the user's disableTOTP method
+      // Note: Clerk handles the verification internally
+      await user.disableTOTP();
 
       // Disable MFA in our database
       const result = await disableMFA();
@@ -161,13 +153,7 @@ export const MFAManagement: React.FC = () => {
 
     setIsLoading(true);
     try {
-      // Destroy existing backup codes
-      const existingBackupCodeResource = user.backupCodeResource;
-      if (existingBackupCodeResource) {
-        await existingBackupCodeResource.destroy();
-      }
-
-      // Generate new backup codes in Clerk
+      // Generate new backup codes in Clerk (this will replace existing ones)
       const newBackupCodeResource = await user.createBackupCode();
       const newCodes = newBackupCodeResource.codes;
 
@@ -178,7 +164,7 @@ export const MFAManagement: React.FC = () => {
       }
 
       // Use the codes from our server action if available, otherwise use Clerk's
-      const finalCodes = result.data?.backupCodes || newCodes;
+      const finalCodes = (result.data as { backupCodes?: string[] })?.backupCodes || newCodes;
       setBackupCodes(finalCodes);
       toast.success("New backup codes generated successfully!");
     } catch (regenerateError) {

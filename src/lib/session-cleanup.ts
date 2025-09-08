@@ -2,7 +2,7 @@
 
 import { auth } from "@clerk/nextjs/server";
 import { structuredLogger } from "./structured-logger";
-import { MultiSessionManager } from "./session-security";
+import { MultiSessionManager } from "./session-security-core";
 import { LogLevel } from "./error-handler";
 
 export interface SessionCleanupOptions {

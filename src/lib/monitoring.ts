@@ -1,5 +1,6 @@
 // Enhanced monitoring and request logging system
 import { NextRequest } from "next/server";
+import { isEdgeRuntime } from "./edge-monitoring";
 
 export interface RequestLogEntry {
   requestId: string;
@@ -16,10 +17,7 @@ export interface RequestLogEntry {
   responseSize?: number;
   rateLimitRemaining?: number;
   securityFlags: string[];
-  metadata?: Record<
-    string,
-    string | number | boolean | Date | null | undefined
-  >;
+  metadata?: Record<string, unknown>;
 }
 
 export interface SecurityEvent {
@@ -38,10 +36,7 @@ export interface SecurityEvent {
   userAgent: string;
   path: string;
   description: string;
-  metadata?: Record<
-    string,
-    string | number | boolean | Date | null | undefined
-  >;
+  metadata?: Record<string, unknown>;
 }
 
 export interface PerformanceMetrics {
@@ -74,10 +69,7 @@ export interface AuthenticationEvent {
   userAgent: string;
   success: boolean;
   errorCode?: string;
-  metadata?: Record<
-    string,
-    string | number | boolean | Date | null | undefined
-  >;
+  metadata?: Record<string, unknown>;
 }
 
 // Enhanced monitoring class with comprehensive logging capabilities
@@ -196,10 +188,7 @@ export class RequestMonitor {
     requestId: string,
     description: string,
     userId?: string,
-    metadata?: Record<
-      string,
-      string | number | boolean | Date | null | undefined
-    >
+    metadata?: Record<string, unknown>
   ): void {
     const securityEvent: SecurityEvent = {
       id: crypto.randomUUID(),
@@ -252,10 +241,7 @@ export class RequestMonitor {
     userId?: string,
     email?: string,
     errorCode?: string,
-    metadata?: Record<
-      string,
-      string | number | boolean | Date | null | undefined
-    >
+    metadata?: Record<string, unknown>
   ): void {
     const authEvent: AuthenticationEvent = {
       id: crypto.randomUUID(),
@@ -482,10 +468,10 @@ export class RequestMonitor {
     try {
       // Check if we're in Node.js runtime (not Edge Runtime)
       if (
+        !isEdgeRuntime() &&
         typeof process !== "undefined" &&
-        process.versions &&
-        process.versions.node &&
-        process.memoryUsage
+        process &&
+        typeof process.memoryUsage === "function"
       ) {
         const memory = process.memoryUsage();
         memoryUsage = memory.heapUsed;
@@ -500,10 +486,10 @@ export class RequestMonitor {
     try {
       // Check if we're in Node.js runtime (not Edge Runtime)
       if (
+        !isEdgeRuntime() &&
         typeof process !== "undefined" &&
-        process.versions &&
-        process.versions.node &&
-        process.uptime
+        process &&
+        typeof process.uptime === "function"
       ) {
         uptime = process.uptime();
       } else {

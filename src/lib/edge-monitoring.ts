@@ -3,16 +3,28 @@
  * This file provides monitoring functionality that works in both Node.js and Edge Runtime
  */
 
-// Runtime detection utility
+// Runtime detection utility - improved Edge Runtime compatibility
 export const isEdgeRuntime = () => {
-  return (
+  try {
     // Check if we're in Edge Runtime by looking for Edge-specific globals
-    typeof globalThis.EdgeRuntime !== "undefined" ||
+    if (
+      typeof (globalThis as unknown as { EdgeRuntime?: unknown })
+        .EdgeRuntime !== "undefined"
+    ) {
+      return true;
+    }
+
     // Check if process is undefined (Edge Runtime doesn't have process)
-    typeof process === "undefined" ||
-    // Check if Node.js specific properties are missing
-    (typeof process !== "undefined" && !process.versions?.node)
-  );
+    if (typeof process === "undefined") {
+      return true;
+    }
+
+    // More robust Node.js detection
+    return !(process && process.versions && process.versions.node);
+  } catch {
+    // If any error occurs, assume we're in Edge Runtime
+    return true;
+  }
 };
 
 // Edge-compatible performance monitoring
@@ -43,41 +55,64 @@ export class EdgePerformanceMonitor {
   }
 
   private static getMemoryUsage(): number {
+    // Only use process APIs when we're definitely in Node.js environment
+    if (isEdgeRuntime()) {
+      return 0; // Return 0 for Edge Runtime
+    }
+
     try {
+      // Additional safety check before accessing process
       if (
         typeof process !== "undefined" &&
-        process.versions?.node &&
-        process.memoryUsage
+        process &&
+        typeof process.memoryUsage === "function"
       ) {
         return process.memoryUsage().heapUsed;
       }
     } catch {
-      // Fallback for Edge Runtime
+      // Fallback for any error
     }
     return 0;
   }
 
   private static getUptime(): number {
+    // Only use process APIs when we're definitely in Node.js environment
+    if (isEdgeRuntime()) {
+      return performance.now() / 1000; // Return performance-based uptime for Edge Runtime
+    }
+
     try {
+      // Additional safety check before accessing process
       if (
         typeof process !== "undefined" &&
-        process.versions?.node &&
-        process.uptime
+        process &&
+        typeof process.uptime === "function"
       ) {
         return process.uptime();
       }
     } catch {
-      // Fallback for Edge Runtime
+      // Fallback for any error
     }
     return performance.now() / 1000;
   }
 }
 
 // Edge-compatible request monitoring
+export interface EdgeRequestLog {
+  requestId: string;
+  method: string;
+  path: string;
+  timestamp: number;
+  userAgent: string;
+  ip: string;
+  runtime: string;
+  userId?: string;
+}
+
 export class EdgeRequestMonitor {
-  static logRequest(req: Request, requestId: string) {
+  static logRequest(req: Request, requestId: string): EdgeRequestLog {
     const url = new URL(req.url);
-    return {
+    const log: EdgeRequestLog = {
       requestId,
       method: req.method,
       path: url.pathname,
@@ -89,6 +124,7 @@ export class EdgeRequestMonitor {
         "unknown",
       runtime: isEdgeRuntime() ? "edge" : "nodejs",
     };
+    return log;
   }
 
   static updateRequestLog(

@@ -1,30 +1,60 @@
 // Extended Clerk types for MFA functionality
 import {
-  UserResource,
-  TOTPResource as ClerkTOTPResource,
-  BackupCodeResource as ClerkBackupCodeResource,
+  DeletedObjectResource,
+  EmailAddressResource,
+  PhoneNumberResource,
 } from "@clerk/types";
 
-// Extended TOTP Resource interface that includes Clerk's required properties
-export interface TOTPResource extends ClerkTOTPResource {
+// Our custom TOTP Resource interface for type safety
+export interface CustomTOTPResource {
+  id: string;
   secret?: string;
   uri?: string;
   qrCode?: string;
-  backupCodes?: string[];
+  verified?: boolean;
+  createdAt?: Date;
+  updatedAt?: Date;
+  // Add methods that we use in our components
+  delete?: () => Promise<DeletedObjectResource>;
+  verify?: (options: { code: string }) => Promise<CustomTOTPResource>;
 }
 
-// Custom Backup Code Resource interface that extends Clerk's interface
-export interface BackupCodeResource extends ClerkBackupCodeResource {
+// Our custom Backup Code Resource interface
+export interface CustomBackupCodeResource {
+  id: string;
   codes: string[];
+  createdAt?: Date;
+  updatedAt?: Date;
+  // Add methods that we use
+  delete?: () => Promise<DeletedObjectResource>;
 }
 
-// Extended User Resource with MFA properties
-export interface ExtendedUserResource
-  extends Omit<UserResource, "createTOTP" | "createBackupCode"> {
-  totpResource?: TOTPResource | null;
-  backupCodeResource?: BackupCodeResource | null;
-  createTOTP: () => Promise<TOTPResource>;
-  createBackupCode: () => Promise<BackupCodeResource>;
+// Extended User Resource with MFA properties - using composition instead of extension
+export interface ExtendedUserResource {
+  // Copy relevant properties from UserResource
+  id: string;
+  firstName?: string | null;
+  lastName?: string | null;
+  emailAddresses: EmailAddressResource[];
+  phoneNumbers: PhoneNumberResource[];
+  primaryEmailAddressId?: string | null;
+  primaryPhoneNumberId?: string | null;
+  totpEnabled?: boolean;
+  backupCodeEnabled?: boolean;
+  twoFactorEnabled?: boolean;
+
+  // Our custom MFA properties
+  totpResource?: CustomTOTPResource | null;
+  backupCodeResource?: CustomBackupCodeResource | null;
+
+  // MFA methods
+  createTOTP: () => Promise<CustomTOTPResource>;
+  createBackupCode: () => Promise<CustomBackupCodeResource>;
+  disableTOTP: () => Promise<DeletedObjectResource>;
+
+  // Keep other UserResource methods we might need
+  reload: () => Promise<ExtendedUserResource>;
+  update: (params: Record<string, unknown>) => Promise<ExtendedUserResource>;
 }
 
 // MFA Device interface for our components

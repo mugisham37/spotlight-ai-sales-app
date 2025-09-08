@@ -6,7 +6,7 @@ import {
   RateLimitManager,
   SecurityValidator,
 } from "./lib/security-config";
-import { RequestMonitor, MiddlewarePerformanceHooks } from "./lib/monitoring";
+import { RequestMonitor } from "./lib/monitoring";
 import {
   EdgePerformanceMonitor,
   EdgeRequestMonitor,
