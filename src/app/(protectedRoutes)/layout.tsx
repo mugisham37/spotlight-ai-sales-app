@@ -1,45 +1,31 @@
-import { onAuthenticateUser } from "@/actions/auth";
-import Header from "@/components/ReusableComponents/LayoutComponents/Header";
-import Sidebar from "@/components/ReusableComponents/LayoutComponents/Sidebar";
-import { redirect } from "next/navigation";
 import React from "react";
+import { redirect } from "next/navigation";
+import { onAuthenticateUser } from "@/actions/auth";
+import { Sidebar } from "lucide-react";
+import Header from "@/components/ReusableComponents/LayoutComponents/Header";
 
 type Props = {
   children: React.ReactNode;
 };
-const Layout = async ({ children }: Props) => {
-  try {
-    // Only run full authentication in production
-    // In development, rely on Clerk middleware for protection
-    if (process.env.NODE_ENV === "production") {
-      const userExists = await onAuthenticateUser();
 
-      if (!userExists.user) {
-        redirect("/sign-in");
-      }
-    }
-  } catch (error) {
-    console.error("Error in protected layout:", error);
+const layout = async ({ children }: Props) => {
+  const userAuth = await onAuthenticateUser();
+
+  if (!userAuth.user) {
     redirect("/sign-in");
   }
 
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-background">
-      {/* Sidebar */}
-      <Sidebar />
-
-      {/* Main Content Area */}
-      <div className="flex flex-col flex-1 min-w-0">
-        {/* Header */}
+    <div className="flex w-full min-h-screen bg-background">
+      <div className="hidden md:flex">
+        <Sidebar className="w-6 h-6 text-muted-foreground" />
+      </div>
+      <div className="flex flex-col w-full h-screen overflow-auto px-4 scrollbar-hide container mx-auto">
         <Header />
-
-        {/* Page Content */}
-        <main className="flex-1 overflow-auto p-6">
-          <div className="mx-auto max-w-7xl">{children}</div>
-        </main>
+        <main className="flex-1 py-10">{children}</main>
       </div>
     </div>
   );
 };
 
-export default Layout;
+export default layout;

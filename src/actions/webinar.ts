@@ -93,3 +93,30 @@ export const createWebinar = async (formData: WebinarFormState) => {
     return { status: 500, message: "Internal server error" };
   }
 };
+
+export const getWebinarByPresenterId = async (presenterId: string) => {
+  try {
+    const webinars = await prismaClient.webinar.findMany({
+      where: {
+        presenterId: presenterId,
+        deletedAt: null,
+      },
+      include: {
+        presenter: {
+          select: {
+            name: true,
+            stripeConnectId: true,
+            id: true,
+          },
+        },
+      },
+      orderBy: {
+        startTime: "desc",
+      },
+    });
+    return { status: 200, webinars: webinars };
+  } catch (error) {
+    console.error("Error getting webinars", error);
+    return { status: 500, message: "Internal server error", webinars: [] };
+  }
+};
