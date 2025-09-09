@@ -6,7 +6,7 @@ import { onBoardingSteps } from "@/lib/data";
 const OnBoarding = () => {
   return (
     <div className="flex flex-col gap-3 items-start">
-      {onBoardingSteps.map((step, index) => (
+      {onBoardingSteps.map((step) => (
         <Link
           key={step.id}
           href={step.link || "#"}

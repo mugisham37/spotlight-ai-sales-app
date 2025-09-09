@@ -3,6 +3,7 @@ import { useRouter, usePathname } from "next/navigation";
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Zap } from "lucide-react";
+import CreateWebinarButton from "../CreateWebinarButton";
 
 const Header = () => {
   const pathname = usePathname();
@@ -12,7 +13,7 @@ const Header = () => {
   const getPageTitle = () => {
     const pathSegments = pathname.split("/").filter(Boolean);
     if (pathSegments.length === 0) return "Dashboard";
-    
+
     const lastSegment = pathSegments[pathSegments.length - 1];
     return lastSegment.charAt(0).toUpperCase() + lastSegment.slice(1);
   };
@@ -43,6 +44,8 @@ const Header = () => {
         <div className="p-2 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
           <Zap className="w-4 h-4 text-primary" />
         </div>
+
+        <CreateWebinarButton />
       </div>
     </header>
   );

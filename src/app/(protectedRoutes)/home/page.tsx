@@ -1,10 +1,9 @@
 import React from "react";
-import Image from "next/image";
 import { Upload, Video, TrendingUp, Users } from "lucide-react";
 import OnBoarding from "./_components/OnBoarding";
 import FeatureCard from "./_components/FeatureCard";
 import FeatureSectionLayout from "./_components/FeatureSectionLayout";
-import UserInfoCard from "@/components/UserInfoCard";
+import UserInfoCard from "@/components/ReusableComponents/UserInfoCard";
 import { potentialCustomers } from "@/lib/data";
 
 const HomePage = () => {
@@ -116,7 +115,7 @@ const HomePage = () => {
             </div>
 
             <div className="flex flex-col gap-4 w-full max-w-sm">
-              {potentialCustomers.slice(0, 2).map((customer, index) => (
+              {potentialCustomers.slice(0, 2).map((customer) => (
                 <UserInfoCard
                   key={customer.id}
                   customer={customer}
