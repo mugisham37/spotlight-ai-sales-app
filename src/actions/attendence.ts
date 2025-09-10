@@ -1,94 +1,167 @@
-import { revalidatePath } from 'next/cache';
-import { ParamsOf } from './../../.next/types/routes.d';
-'user server'
+"use server";
 
-import { id } from "date-fns/locale"
+import { revalidatePath } from "next/cache";
+import { prismaClient } from "@/lib/prismaClient";
+import {
+  AttendedTypeEnum,
+  CtaTypeEnum,
+  type AttendanceData,
+  type WebinarAttendanceResponse,
+  type Attendee,
+} from "@/lib/types";
 
-const getWebinarAttendence = async(webinarId: string, options:{includeUsers?: boolean userLimit?: number} = {includeUsers: true, userLimit: 100}) => {
-    try{
-        const webinar = await prisma.webinar.findUnique({
-            where: {id: webinarId},
-            select:{
-                id: true,
-                ctaType: true,
-                tags: true,
-                _count: {
-                    attendences: true
-                },
-            }
-        })
-        if(!webinar){
-            return {success: false, status: 404, error: "Webinar not found"}
-        }
-        const attendenceCounts = await prisma.Attendence.groupBy({
-            by: ['attendedType'],
-            _count: {attendedType: true},
-            where: {webinarId: webinarId}
-        })
-        const result: Record<AttendedTypeEnum, AttendanceData> ={} as Record<AttendedTypeEnum, AttendanceData>
-
-        for (const type of Object.values(AttendedTypeEnum)){
-            if(
-                type === AttendedTypeEnum.Attended.ADDED_TO_CART && webinar.ctaType === CtaTypeEnum.BOOK_A_CALL)
-            )
-            continue
-             if(
-                type === AttendedTypeEnum.Attended.BREAKOUT_ROOM && webinar.ctaType === CtaTypeEnum.BOOK_A_CALL)
-            )
-            continue
-            const countItem = attandanceCounts.find((item) => {
-                if(webinar.ctaType === CtaTypeEnum.BOOK_A_CALL && item.attendedType === AttendedTypeEnum.Attended.ADDED_TO_CART || webinar.ctaType === CtaTypeEnum.BOOK_A_CALL && item.attendedType === AttendedTypeEnum.Attended.BREAKOUT_ROOM){
-                    return true
-                }
-                return item.attandedType === type
-            })
-            result[type] = {count: countItem?._count?.attendedType || 0, users: []
-
-            }
-        }
-        if(options.includeUsers){
-            for(const type of Object.values(AttendedTypeEnum)){
-                if(
-                    type === AttendedTypeEnum.Attended.ADDED_TO_CART && webinar.ctaType === CtaTypeEnum.BOOK_A_CALL) || (type === AttendedTypeEnum.Attended.BREAKOUT_ROOM && webinar.ctaType === CtaTypeEnum.BOOK_A_CALL)
-                ){
-                continue
-            }
-            const querytype = 
-            webinar.ctaType === CtaTypeEnum.BOOK_A_CALL && type === AttendedTypeEnum.Attended.BREAKOUT_ROOM ? AttendedTypeEnum.Attended.ADDED_TO_CART : type
-
-            if(result[type].count > 0){
-                const attendances = await prisma.Attendence.findMany({
-                    where: {webinarId: webinarId, attendedType: querytype},
-                    include:{
-                        user:true,
-                    },
-                    take: options>userLimit,
-                    orderBy:{
-                        joinedAt: 'desc'
-
-                    }, 
-                })
-                result[type].users = attendances.map((item) => ({
-                    id: attendances.user.id,
-                    name: attendances.user.name,
-                    email: attendances.user.email,
-                    attandedAt: attendances.joinedAt,
-                    stripeConnectId: null,
-                    callStatus: attendances.user.callStatus,
-
-                }))
-            }
-            }
-        }
-        revalidatePath(`/webinar/${webinarId}/pipeline`)
-        return {
-            success: true,
-            data: resumePluginState,
-            ctaType: webinar.ctaType,
-            webinarTags: webinar.tags || [],
-        }
-    }catch(error){
-        : console.error("Error fetching webinar attendence:", error);
-        return {success: false, status: 500, error: "Internal server error"}
-    }
+interface GetWebinarAttendanceOptions {
+  includeUsers?: boolean;
+  userLimit?: number;
 }
+
+interface AttendanceCountResult {
+  attendedType: AttendedTypeEnum;
+  _count: {
+    attendedType: number;
+  };
+}
+
+interface AttendanceWithRelations {
+  id: string;
+  webinarId: string;
+  attendeeId: string;
+  userId: string | null;
+  joinedAt: Date;
+  leftAt: Date | null;
+  attendedType: AttendedTypeEnum;
+  createdAt: Date;
+  updatedAt: Date;
+  attendee: {
+    id: string;
+    email: string;
+    name: string | null;
+    callStatus: import("@prisma/client").CallStatusEnum;
+  };
+  user: {
+    id: string;
+    email: string;
+    name: string | null;
+  } | null;
+}
+
+export const getWebinarAttendance = async (
+  webinarId: string,
+  options: GetWebinarAttendanceOptions = { includeUsers: true, userLimit: 100 }
+): Promise<WebinarAttendanceResponse> => {
+  try {
+    const webinar = await prismaClient.webinar.findUnique({
+      where: { id: webinarId },
+      select: {
+        id: true,
+        ctaType: true,
+        tags: true,
+        _count: {
+          attendances: true,
+        },
+      },
+    });
+
+    if (!webinar) {
+      return { success: false, status: 404, error: "Webinar not found" };
+    }
+
+    const attendanceCounts = await prismaClient.attendance.groupBy({
+      by: ["attendedType"],
+      _count: { attendedType: true },
+      where: { webinarId: webinarId },
+    });
+
+    const result: Record<AttendedTypeEnum, AttendanceData> = {} as Record<
+      AttendedTypeEnum,
+      AttendanceData
+    >;
+
+    // Initialize all attendance types
+    for (const type of Object.values(AttendedTypeEnum)) {
+      // Skip certain types based on CTA type
+      if (
+        (type === AttendedTypeEnum.ADDED_TO_CART &&
+          webinar.ctaType === CtaTypeEnum.BOOK_A_CALL) ||
+        (type === AttendedTypeEnum.BREAKOUT_ROOM &&
+          webinar.ctaType === CtaTypeEnum.BOOK_A_CALL)
+      ) {
+        continue;
+      }
+
+      const countItem = attendanceCounts.find((item: AttendanceCountResult) => {
+        if (
+          webinar.ctaType === CtaTypeEnum.BOOK_A_CALL &&
+          (item.attendedType === AttendedTypeEnum.ADDED_TO_CART ||
+            item.attendedType === AttendedTypeEnum.BREAKOUT_ROOM)
+        ) {
+          return false;
+        }
+        return item.attendedType === type;
+      });
+
+      result[type] = {
+        count: countItem?._count?.attendedType || 0,
+        users: [],
+        webinarTags: webinar.tags || [],
+      };
+    }
+
+    // Fetch users if requested
+    if (options.includeUsers) {
+      for (const type of Object.values(AttendedTypeEnum)) {
+        if (
+          (type === AttendedTypeEnum.ADDED_TO_CART &&
+            webinar.ctaType === CtaTypeEnum.BOOK_A_CALL) ||
+          (type === AttendedTypeEnum.BREAKOUT_ROOM &&
+            webinar.ctaType === CtaTypeEnum.BOOK_A_CALL)
+        ) {
+          continue;
+        }
+
+        const queryType =
+          webinar.ctaType === CtaTypeEnum.BOOK_A_CALL &&
+          type === AttendedTypeEnum.BREAKOUT_ROOM
+            ? AttendedTypeEnum.ADDED_TO_CART
+            : type;
+
+        if (result[type].count > 0) {
+          const attendances = await prismaClient.attendance.findMany({
+            where: { webinarId: webinarId, attendedType: queryType },
+            include: {
+              attendee: true,
+              user: true,
+            },
+            take: options.userLimit,
+            orderBy: {
+              joinedAt: "desc",
+            },
+          });
+
+          result[type].users = attendances.map(
+            (attendance: AttendanceWithRelations): Attendee => ({
+              id: attendance.attendee.id,
+              name: attendance.attendee.name,
+              email: attendance.attendee.email,
+              attendedAt: attendance.joinedAt,
+              stripeConnectId: null,
+              callStatus: attendance.attendee.callStatus,
+            })
+          );
+        }
+      }
+    }
+
+    revalidatePath(`/webinar/${webinarId}/pipeline`);
+
+    return {
+      success: true,
+      data: result,
+      ctaType: webinar.ctaType,
+      webinarTags: webinar.tags || [],
+    };
+  } catch (error) {
+    console.error("Error fetching webinar attendance:", error);
+    return { success: false, status: 500, error: "Internal server error" };
+  }
+};

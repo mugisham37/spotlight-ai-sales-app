@@ -157,7 +157,30 @@ export type AuditEventDetails = BaseMetadata;
 // Security event details type
 export type SecurityEventDetails = BaseMetadata;
 
+// Webinar Pipeline Types
+export type Attendee = {
+  id: string;
+  name: string | null;
+  email: string;
+  attendedAt: Date;
+  stripeConnectId: string | null;
+  callStatus: CallStatusEnum;
+};
+
 export type AttendanceData = {
   count: number;
-  users?: Attendee[];
+  users: Attendee[];
+  webinarTags?: string[];
 };
+
+export type WebinarAttendanceResponse = {
+  success: boolean;
+  data?: Record<AttendedTypeEnum, AttendanceData>;
+  ctaType?: CtaTypeEnum | null;
+  webinarTags?: string[];
+  status?: number;
+  error?: string;
+};
+
+// Export enums for use in components
+export { AttendedTypeEnum, CtaTypeEnum, CallStatusEnum };
