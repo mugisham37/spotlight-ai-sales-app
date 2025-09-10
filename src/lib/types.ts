@@ -1,4 +1,5 @@
-import { CtaTypeEnum } from "@prisma/client";
+import { CtaTypeEnum, AttendedTypeEnum, CallStatusEnum } from "@prisma/client";
+
 // Shared type definitions for the authentication system
 
 // Base metadata type used across all logging systems
@@ -155,3 +156,8 @@ export type AuditEventDetails = BaseMetadata;
 
 // Security event details type
 export type SecurityEventDetails = BaseMetadata;
+
+export type AttendanceData = {
+  count: number;
+  users?: Attendee[];
+};
