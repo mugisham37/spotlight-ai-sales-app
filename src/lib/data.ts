@@ -120,3 +120,5 @@ export const potentialCustomers: Customer[] = [
     tags: ["Prospect", "Follow-up"],
   },
 ];
+
+export const subscriptionPriceId=`price_1N4tY2L6Jp0gG3price_1S5rFsHIj86JLbO9AIDszuND`

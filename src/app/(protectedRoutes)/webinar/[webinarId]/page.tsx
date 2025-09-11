@@ -1,9 +1,11 @@
 import React from "react";
 
-type Props = {};
+interface PageProps {
+  params: { webinarId: string };
+}
 
-const page = (props: Props) => {
-  return <div>page</div>;
+const page = ({ params }: PageProps) => {
+  return <div>Webinar ID: {params.webinarId}</div>;
 };
 
 export default page;

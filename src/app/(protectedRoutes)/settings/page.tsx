@@ -1,145 +1,190 @@
-"use client";
-
-import React from "react";
+import { onAuthenticateUser } from "@/actions/auth";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
-import { Shield, Settings, User } from "lucide-react";
-import { MFAManagement } from "@/components/auth/MFAManagement";
+  LucideArrowRight,
+  LucideCheckCircle2,
+  LucideXCircle,
+  LucideShield,
+  LucideCreditCard,
+  LucideZap,
+} from "lucide-react";
+import { redirect } from "next/navigation";
+import { getStripeOAuthLink } from "@/lib/stripe/utils";
+import Link from "next/link";
+import React from "react";
 
-const SecuritySettingsPage = () => {
+const page = async () => {
+  const authResult = await onAuthenticateUser();
+
+  if (authResult.status !== 200 && authResult.status !== 201) {
+    redirect("/sign-in");
+  }
+
+  const user = authResult.user;
+  if (!user) {
+    redirect("/sign-in");
+  }
+
+  const isConnected = !!user.stripeConnectId;
+  const stripeLink = getStripeOAuthLink("api/stripe-connect", user.id);
+
   return (
-    <div className="container mx-auto py-8 px-4 max-w-4xl">
-      {/* Page Header */}
-      <div className="mb-8">
-        <div className="flex items-center space-x-3 mb-2">
-          <Shield className="h-6 w-6 text-primary" />
-          <h1 className="text-3xl font-bold">Security Settings</h1>
-        </div>
+    <div className="max-w-4xl mx-auto py-8 px-4 space-y-8">
+      <div className="space-y-2">
+        <h1 className="text-3xl font-bold tracking-tight">
+          Payment Integration
+        </h1>
         <p className="text-muted-foreground">
-          Manage your account security and authentication preferences
+          Manage your payment settings and connect with Stripe to start
+          accepting payments.
         </p>
       </div>
 
-      <div className="space-y-8">
-        {/* Multi-Factor Authentication Section */}
-        <section>
-          <div className="mb-6">
-            <h2 className="text-xl font-semibold mb-2">
-              Multi-Factor Authentication
-            </h2>
-            <p className="text-muted-foreground">
-              Secure your account with an additional verification step during
-              sign-in
+      {/* Main Stripe Connect Card */}
+      <div className="relative overflow-hidden rounded-xl border bg-card p-8 shadow-sm">
+        <div className="absolute inset-0 bg-gradient-to-br from-purple-50/50 via-transparent to-indigo-50/50" />
+        <div className="relative">
+          <div className="flex items-center gap-4 mb-6">
+            <div className="h-12 w-12 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center shadow-lg">
+              <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                className="text-white"
+              >
+                <path
+                  d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21L12 17.77L5.82 21L7 14.14L2 9.27L8.91 8.26L12 2Z"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-2xl font-semibold text-foreground">
+                Stripe Connect
+              </h2>
+              <p className="text-muted-foreground">
+                Connect your Stripe account to start accepting payments and
+                managing subscriptions seamlessly.
+              </p>
+            </div>
+          </div>
+
+          {/* Connection Status */}
+          <div className="mb-8 p-4 rounded-lg bg-background/50 border">
+            <div className="flex items-start gap-3">
+              {isConnected ? (
+                <LucideCheckCircle2 className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
+              ) : (
+                <LucideXCircle className="h-5 w-5 text-amber-500 mt-0.5 flex-shrink-0" />
+              )}
+              <div className="flex-1">
+                <p className="font-medium text-foreground">
+                  {isConnected
+                    ? "Connected to Stripe"
+                    : "Not connected to Stripe"}
+                </p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {isConnected
+                    ? "You can now accept payments and manage subscriptions through your connected Stripe account."
+                    : "To start accepting payments, please connect your Stripe account."}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Action Section */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="text-sm text-muted-foreground">
+              {isConnected
+                ? "You can reconnect anytime if needed"
+                : "You will be redirected to Stripe to complete the connection process."}
+            </div>
+            <Link
+              href={stripeLink}
+              className={`px-6 py-3 rounded-lg font-medium text-sm flex items-center gap-2 transition-all duration-200 shadow-sm hover:shadow-md ${
+                isConnected
+                  ? "bg-muted hover:bg-muted/80 text-foreground border"
+                  : "bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white"
+              }`}
+            >
+              {isConnected ? "Reconnect to Stripe" : "Connect to Stripe"}
+              <LucideArrowRight size={16} />
+            </Link>
+          </div>
+        </div>
+      </div>
+
+      {/* Benefits Section - Only show when not connected */}
+      {!isConnected && (
+        <div className="grid md:grid-cols-3 gap-6">
+          <div className="p-6 rounded-lg border bg-card">
+            <div className="h-10 w-10 rounded-lg bg-green-100 flex items-center justify-center mb-4">
+              <LucideShield className="h-5 w-5 text-green-600" />
+            </div>
+            <h3 className="font-semibold mb-2">Secure Payments</h3>
+            <p className="text-sm text-muted-foreground">
+              Industry-leading security with PCI compliance and fraud protection
+              built-in.
             </p>
           </div>
-          <MFAManagement />
-        </section>
 
-        <Separator />
+          <div className="p-6 rounded-lg border bg-card">
+            <div className="h-10 w-10 rounded-lg bg-blue-100 flex items-center justify-center mb-4">
+              <LucideCreditCard className="h-5 w-5 text-blue-600" />
+            </div>
+            <h3 className="font-semibold mb-2">Multiple Payment Methods</h3>
+            <p className="text-sm text-muted-foreground">
+              Accept credit cards, digital wallets, and local payment methods
+              worldwide.
+            </p>
+          </div>
 
-        {/* Account Security Overview */}
-        <section>
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Settings className="h-5 w-5" />
-                <span>Security Overview</span>
-              </CardTitle>
-              <CardDescription>
-                Review your account security status and recommendations
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-3 border rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    <User className="h-5 w-5 text-muted-foreground" />
-                    <div>
-                      <p className="font-medium">Account Verification</p>
-                      <p className="text-sm text-muted-foreground">
-                        Your email address is verified
-                      </p>
-                    </div>
-                  </div>
-                  <div className="text-green-600 text-sm font-medium">
-                    ✓ Verified
-                  </div>
-                </div>
+          <div className="p-6 rounded-lg border bg-card">
+            <div className="h-10 w-10 rounded-lg bg-purple-100 flex items-center justify-center mb-4">
+              <LucideZap className="h-5 w-5 text-purple-600" />
+            </div>
+            <h3 className="font-semibold mb-2">Fast Setup</h3>
+            <p className="text-sm text-muted-foreground">
+              Get started in minutes with our streamlined onboarding process.
+            </p>
+          </div>
+        </div>
+      )}
 
-                <div className="flex items-center justify-between p-3 border rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    <Shield className="h-5 w-5 text-muted-foreground" />
-                    <div>
-                      <p className="font-medium">Password Security</p>
-                      <p className="text-sm text-muted-foreground">
-                        Strong password with recent updates
-                      </p>
-                    </div>
-                  </div>
-                  <div className="text-green-600 text-sm font-medium">
-                    ✓ Strong
-                  </div>
-                </div>
+      {/* Connected Features - Only show when connected */}
+      {isConnected && (
+        <div className="space-y-6">
+          <div className="p-6 rounded-lg border bg-card">
+            <h3 className="text-lg font-semibold mb-4">Connected Features</h3>
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-green-50 border border-green-200">
+                <LucideCheckCircle2 className="h-4 w-4 text-green-600" />
+                <span className="text-sm font-medium">Payment Processing</span>
               </div>
-            </CardContent>
-          </Card>
-        </section>
-
-        {/* Security Recommendations */}
-        <section>
-          <Card>
-            <CardHeader>
-              <CardTitle>Security Recommendations</CardTitle>
-              <CardDescription>
-                Follow these best practices to keep your account secure
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div className="flex items-start space-x-3 p-3 bg-muted/50 rounded-lg">
-                  <Shield className="h-5 w-5 text-primary mt-0.5" />
-                  <div>
-                    <p className="font-medium">
-                      Enable Multi-Factor Authentication
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      Add an extra layer of security to prevent unauthorized
-                      access
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-start space-x-3 p-3 bg-muted/50 rounded-lg">
-                  <Shield className="h-5 w-5 text-primary mt-0.5" />
-                  <div>
-                    <p className="font-medium">Use Strong, Unique Passwords</p>
-                    <p className="text-sm text-muted-foreground">
-                      Create complex passwords that are unique to this account
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-start space-x-3 p-3 bg-muted/50 rounded-lg">
-                  <Shield className="h-5 w-5 text-primary mt-0.5" />
-                  <div>
-                    <p className="font-medium">Keep Recovery Codes Safe</p>
-                    <p className="text-sm text-muted-foreground">
-                      Store backup codes in a secure location separate from your
-                      device
-                    </p>
-                  </div>
-                </div>
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-green-50 border border-green-200">
+                <LucideCheckCircle2 className="h-4 w-4 text-green-600" />
+                <span className="text-sm font-medium">
+                  Subscription Management
+                </span>
               </div>
-            </CardContent>
-          </Card>
-        </section>
-      </div>
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-green-50 border border-green-200">
+                <LucideCheckCircle2 className="h-4 w-4 text-green-600" />
+                <span className="text-sm font-medium">Automated Invoicing</span>
+              </div>
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-green-50 border border-green-200">
+                <LucideCheckCircle2 className="h-4 w-4 text-green-600" />
+                <span className="text-sm font-medium">Revenue Analytics</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
-export default SecuritySettingsPage;
+export default page;

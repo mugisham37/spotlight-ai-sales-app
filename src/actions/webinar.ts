@@ -4,6 +4,7 @@ import { WebinarFormState } from "@/store/useWebinarStore";
 import { onAuthenticateUser } from "./auth";
 import prismaClient from "@/lib/prismaClient";
 import { revalidatePath } from "next/cache";
+import { WebinarStatusEnum } from "@prisma/client";
 
 function combineDateAndTime(
   date: Date,
@@ -118,5 +119,48 @@ export const getWebinarByPresenterId = async (presenterId: string) => {
   } catch (error) {
     console.error("Error getting webinars", error);
     return { status: 500, message: "Internal server error", webinars: [] };
+  }
+};
+
+export const getWebinarById = async (webinarId: string) => {
+  try {
+    const webinar = await prismaClient.webinar.findUnique({
+      where: { id: webinarId },
+      include: {
+        presenter: {
+          select: {
+            id: true,
+            name: true,
+            profileImage: true,
+            stripeConnectId: true,
+          },
+        },
+      },
+    });
+    return webinar;
+  } catch (error) {
+    console.error("Error getting webinar", error);
+    throw new Error("Error getting webinar");
+  }
+};
+
+export const changeWebinarStatus = async (
+  webinarId: string,
+  webinarStatus: WebinarStatusEnum
+) => {
+  try {
+    const webinar = await prismaClient.webinar.update({
+      where: { id: webinarId },
+      data: { webinarStatus: webinarStatus },
+    });
+    return {
+      status: 200,
+      success: true,
+      message: "Webinar status updated",
+      webinar,
+    };
+  } catch (error) {
+    console.error("Error changing webinar status", error);
+    return { status: 500, success: false, message: "Internal server error" };
   }
 };

@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { prismaClient } from "@/lib/prismaClient";
+import prismaClient from "@/lib/prismaClient";
 import {
   AttendedTypeEnum,
   CtaTypeEnum,
@@ -56,9 +56,6 @@ export const getWebinarAttendance = async (
         id: true,
         ctaType: true,
         tags: true,
-        _count: {
-          attendances: true,
-        },
       },
     });
 
@@ -163,5 +160,104 @@ export const getWebinarAttendance = async (
   } catch (error) {
     console.error("Error fetching webinar attendance:", error);
     return { success: false, status: 500, error: "Internal server error" };
+  }
+};
+
+export const registerAttendee = async ({
+  email,
+  name,
+  webinarId,
+}: {
+  email: string;
+  name?: string;
+  webinarId: string;
+}) => {
+  try {
+    if (!email || !webinarId) {
+      return {
+        success: false,
+        status: 400,
+        error: "Email and Webinar ID are required",
+      };
+    }
+
+    const webinar = await prismaClient.webinar.findUnique({
+      where: { id: webinarId },
+    });
+
+    if (!webinar) {
+      return {
+        success: false,
+        status: 404,
+        error: "Webinar not found",
+      };
+    }
+
+    let attendee = await prismaClient.attendee.findUnique({
+      where: { email },
+    });
+
+    if (!attendee) {
+      attendee = await prismaClient.attendee.create({
+        data: {
+          email,
+          name: name || null,
+        },
+      });
+    }
+
+    const existingAttendance = await prismaClient.attendance.findFirst({
+      where: {
+        webinarId,
+        attendeeId: attendee.id,
+      },
+      include: {
+        user: true,
+        attendee: true,
+      },
+    });
+
+    if (existingAttendance) {
+      return {
+        success: true,
+        message: "Attendee already registered",
+        data: {
+          user: existingAttendance.attendee,
+          attendance: existingAttendance,
+        },
+        status: 200,
+      };
+    }
+
+    const attendance = await prismaClient.attendance.create({
+      data: {
+        attendedType: AttendedTypeEnum.REGISTERED,
+        attendeeId: attendee.id,
+        webinarId: webinar.id,
+      },
+      include: {
+        user: true,
+        attendee: true,
+      },
+    });
+
+    revalidatePath(`/${webinarId}`);
+
+    return {
+      success: true,
+      message: "Attendee registered successfully",
+      data: {
+        user: attendance.attendee,
+        attendance: attendance,
+      },
+      status: 201,
+    };
+  } catch (error) {
+    console.error("Error registering attendee:", error);
+    return {
+      success: false,
+      status: 500,
+      error: "Internal server error",
+    };
   }
 };

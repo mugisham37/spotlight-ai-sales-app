@@ -4,8 +4,23 @@ import React from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Zap } from "lucide-react";
 import CreateWebinarButton from "../CreateWebinarButton";
+import { StripeElement } from "../Stripe/Element";
+import SubscriptionModal from "../SubscriptionModal";
+import { StripeProduct } from "@/types/stripe";
 
-const Header = () => {
+type User = {
+  id: string;
+  email: string;
+  name: string | null;
+  subscription?: boolean;
+};
+
+type Props = {
+  user: User;
+  stripeProducts: StripeProduct[];
+};
+
+const Header = ({ user, stripeProducts }: Props) => {
   const pathname = usePathname();
   const router = useRouter();
 
@@ -45,7 +60,13 @@ const Header = () => {
           <Zap className="w-4 h-4 text-primary" />
         </div>
 
-        <CreateWebinarButton />
+        {user.subscription ? (
+          <CreateWebinarButton stripeProducts={stripeProducts} />
+        ) : (
+          <StripeElement>
+            <SubscriptionModal user={user} />
+          </StripeElement>
+        )}
       </div>
     </header>
   );

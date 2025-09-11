@@ -7,11 +7,23 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { X, Phone, Mail, ExternalLink } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { X, Phone, Mail, ExternalLink, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CtaTypeEnum } from "@prisma/client";
+import { StripeProduct } from "@/types/stripe";
 
-const CTAStep = () => {
+type Props = {
+  stripeProducts: StripeProduct[];
+};
+
+const CTAStep = ({ stripeProducts }: Props) => {
   const {
     formData,
     updateCtaField,
@@ -20,7 +32,7 @@ const CTAStep = () => {
     getStepValidationErrors,
   } = useWebinarStore();
 
-  const { ctaType, ctaLabel, tags } = formData.cta;
+  const { ctaType, ctaLabel, tags, priceId } = formData.cta;
   const errors = getStepValidationErrors("cta");
   const [tagInput, setTagInput] = useState("");
 
@@ -41,6 +53,10 @@ const CTAStep = () => {
 
   const handleSelectCTAType = (value: CtaTypeEnum) => {
     updateCtaField("ctaType", value);
+  };
+
+  const handleProductChange = (value: string) => {
+    updateCtaField("priceId", value);
   };
 
   return (
@@ -166,6 +182,46 @@ const CTAStep = () => {
         {errors.ctaType && (
           <p className="text-sm text-red-400">{errors.ctaType}</p>
         )}
+      </div>
+      <div className="space-y-2">
+        <Label>Attach a Product</Label>
+        <div className="relative">
+          <div className="mb-2">
+            <div className="relative">
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-500" />
+              <Input
+                placeholder="Search Products"
+                className="pl-9 !bg-background/50 border border-input"
+              />
+            </div>
+          </div>
+          <Select value={priceId} onValueChange={handleProductChange}>
+            <SelectTrigger className="w-full !bg-background/50 border border-input">
+              <SelectValue placeholder="Select a product" />
+            </SelectTrigger>
+            <SelectContent className="bg-background border border-input max-h-48">
+              {stripeProducts?.length > 0 ? (
+                stripeProducts.map((product) => (
+                  <SelectItem
+                    key={product.id}
+                    value={
+                      typeof product.default_price === "string"
+                        ? product.default_price
+                        : product.default_price?.id || ""
+                    }
+                    className="!bg-background/50 hover:!bg-background/70"
+                  >
+                    {product.name}
+                  </SelectItem>
+                ))
+              ) : (
+                <SelectItem value="no-products" disabled>
+                  No products available
+                </SelectItem>
+              )}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
     </div>
   );

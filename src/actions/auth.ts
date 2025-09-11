@@ -18,6 +18,7 @@ interface User {
   name: string | null;
   profileImage: string | null;
   clerkId: string;
+  stripeConnectId: string | null;
 }
 
 interface AuthResponse {

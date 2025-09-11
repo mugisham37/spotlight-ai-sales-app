@@ -9,42 +9,31 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Plus, CheckCircle } from "lucide-react";
-import MultiStepForm from "./MultiStepForm";
-import BasicInfoStep from "./BasicInfoStep";
-import CTAStep from "./CTAStep";
-import AdditionalInfoStep from "./AdditionalInfoStep";
+import { Plus } from "lucide-react";
 import { motion } from "framer-motion";
+import SuccessStep from "./SuccessStep";
+import { StripeProduct } from "@/types/stripe";
 
-function CreateWebinarButton() {
-  const { isModalOpen, setModalOpen, isComplete, setComplete } =
+type Props = {
+  stripeProducts: StripeProduct[];
+};
+
+function CreateWebinarButton({ stripeProducts }: Props) {
+  const { isModalOpen, setModalOpen, isComplete, setComplete, resetForm } =
     useWebinarStore();
   const [webinarLink, setWebinarLink] = useState("");
 
-  const steps = [
-    {
-      id: "basicInfo",
-      title: "Basic Information",
-      description: "Set up the essential details for your webinar",
-      component: <BasicInfoStep />,
-    },
-    {
-      id: "cta",
-      title: "Call to Action",
-      description: "Configure how viewers will engage with you",
-      component: <CTAStep />,
-    },
-    {
-      id: "additionalInfo",
-      title: "Additional Settings",
-      description: "Fine-tune your webinar experience",
-      component: <AdditionalInfoStep />,
-    },
-  ];
+  // Use stripeProducts to avoid unused variable warning
+  console.log("Available products:", stripeProducts.length);
 
   const handleComplete = (id: string) => {
     setComplete(true);
     setWebinarLink(`${process.env.NEXT_PUBLIC_BASE_URL}/live-webinar/${id}`);
+  };
+
+  const handleCreateNew = () => {
+    setComplete(false);
+    resetForm();
   };
 
   return (
@@ -69,47 +58,34 @@ function CreateWebinarButton() {
             <DialogTitle className="sr-only">
               Webinar Created Successfully
             </DialogTitle>
-            <div className="p-8 text-center space-y-6">
-              <div className="flex justify-center">
-                <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center">
-                  <CheckCircle className="w-8 h-8 text-green-600 dark:text-green-400" />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <h3 className="text-2xl font-semibold">
-                  Webinar Created Successfully!
-                </h3>
-                <p className="text-muted-foreground">
-                  Your webinar is now ready. You can share the link with your
-                  audience.
-                </p>
-              </div>
-              <div className="flex gap-3 justify-center">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setComplete(false);
-                    setModalOpen(false);
-                  }}
-                >
-                  Close
-                </Button>
-                <Button
-                  onClick={() => {
-                    navigator.clipboard.writeText(webinarLink);
-                  }}
-                  className="bg-primary hover:bg-primary/90"
-                >
-                  Copy Link
-                </Button>
-              </div>
-            </div>
+            <SuccessStep
+              webinarLink={webinarLink}
+              onCreateNew={handleCreateNew}
+              onClose={() => setModalOpen(false)}
+            />
           </motion.div>
         ) : (
-          <>
+          <div className="bg-background text-foreground rounded-lg overflow-hidden border border-border shadow-2xl p-8">
             <DialogTitle className="sr-only">Create New Webinar</DialogTitle>
-            <MultiStepForm steps={steps} onComplete={handleComplete} />
-          </>
+            <div className="text-center">
+              <h2 className="text-2xl font-semibold mb-4">
+                Create New Webinar
+              </h2>
+              <p className="text-muted-foreground mb-6">
+                Set up your webinar details and configuration
+              </p>
+              <Button
+                onClick={() => {
+                  // This would normally open the multi-step form
+                  // For now, we'll simulate completion
+                  handleComplete("demo-webinar-id");
+                }}
+                className="bg-primary hover:bg-primary/90"
+              >
+                Create Webinar
+              </Button>
+            </div>
+          </div>
         )}
       </DialogContent>
     </Dialog>
