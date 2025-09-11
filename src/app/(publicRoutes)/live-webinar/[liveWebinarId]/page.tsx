@@ -22,9 +22,10 @@ const page = async ({ params, searchParams }: Props) => {
   }
 
   const checkUser = await onAuthenticateUser();
-  const apiKey = process.env.STREAM_API_KEY as string;
-  const token = process.env.STREAM_TOKEN as string;
-  const callId = process.env.STREAM_CALL_ID as string;
+  // TODO: Implement video calling functionality
+  // const apiKey = process.env.STREAM_API_KEY as string;
+  // const token = process.env.STREAM_TOKEN as string;
+  // const callId = process.env.STREAM_CALL_ID as string;
 
   return (
     <div className="w-full min-h-screen mx-auto">
@@ -32,9 +33,6 @@ const page = async ({ params, searchParams }: Props) => {
         error={error}
         user={checkUser.user || null}
         webinar={webinarData}
-        apiKey={apiKey}
-        token={token}
-        callId={callId}
       />
     </div>
   );

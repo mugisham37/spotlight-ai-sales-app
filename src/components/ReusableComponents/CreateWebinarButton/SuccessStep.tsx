@@ -10,7 +10,7 @@ type Props = {
   onClose: () => void;
 };
 
-const SuccessStep = ({ webinarLink, onCreateNew, onClose }: Props) => {
+const SuccessStep = ({ webinarLink, onCreateNew }: Props) => {
   const [copied, setCopied] = useState(false);
 
   const handleCopyLink = () => {

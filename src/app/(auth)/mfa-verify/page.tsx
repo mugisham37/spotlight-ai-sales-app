@@ -1,13 +1,13 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
 import { MFAVerification } from "@/components/auth/MFAVerification";
 import { AuthErrorBoundary } from "@/components/auth/AuthErrorHandler";
 import { AuthPageSkeleton } from "@/components/auth/AuthLoadingStates";
 
-const MFAVerifyPage = () => {
+const MFAVerifyContent = () => {
   const { isLoaded, userId } = useAuth();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -53,6 +53,14 @@ const MFAVerifyPage = () => {
         redirectUrl={redirectUrl}
       />
     </AuthErrorBoundary>
+  );
+};
+
+const MFAVerifyPage = () => {
+  return (
+    <Suspense fallback={<AuthPageSkeleton message="Loading verification..." />}>
+      <MFAVerifyContent />
+    </Suspense>
   );
 };
 

@@ -26,18 +26,20 @@ type Props = {
   error: string | undefined;
   user: User | null;
   webinar: Webinar;
-  apiKey: string;
-  token: string;
-  callId: string;
+  // TODO: Implement video calling functionality
+  apiKey?: string;
+  token?: string;
+  callId?: string;
 };
 
 const RenderWebinar = ({
   error,
   user,
   webinar,
-  apiKey,
-  token,
-  callId,
+  // TODO: Implement video calling functionality
+  // apiKey,
+  // token,
+  // callId,
 }: Props) => {
   const router = useRouter();
   const pathname = usePathname();

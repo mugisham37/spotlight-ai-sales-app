@@ -1,7 +1,7 @@
 "use server";
 
 import Stripe from "stripe";
-import { stripe } from "@/lib/stripe";
+import { stripe } from "@/lib/stripe/index";
 import { onAuthenticateUser } from "./auth";
 import prismaClient from "@/lib/prismaClient";
 import { subscriptionPriceId } from "@/lib/data";

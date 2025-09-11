@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { stripe } from "@/lib/stripe";
+import { stripe } from "@/lib/stripe/index";
 import prismaClient from "@/lib/prismaClient";
 
 export async function GET(request: NextRequest) {
@@ -61,7 +61,7 @@ export async function GET(request: NextRequest) {
         )
       );
     }
-  } catch (error) {
+  } catch {
     return NextResponse.redirect(
       new URL(
         `/settings?success=false&message=An+unexpected+error+occurred`,

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { headers } from "next/headers";
 import Stripe from "stripe";
-import { stripe } from "@/lib/stripe";
+import { stripe } from "@/lib/stripe/index";
 import { updateSubscription } from "@/actions/stripe";
 
 const STRIPE_SUBSCRIPTION_EVENTS = new Set([

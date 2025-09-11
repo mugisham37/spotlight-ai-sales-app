@@ -1,13 +1,13 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
 import { MFASetup } from "@/components/auth/MFASetup";
 import { AuthErrorBoundary } from "@/components/auth/AuthErrorHandler";
 import { AuthPageSkeleton } from "@/components/auth/AuthLoadingStates";
 
-const MFASetupPage = () => {
+const MFASetupContent = () => {
   const { isLoaded, userId } = useAuth();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -54,6 +54,14 @@ const MFASetupPage = () => {
         />
       </div>
     </AuthErrorBoundary>
+  );
+};
+
+const MFASetupPage = () => {
+  return (
+    <Suspense fallback={<AuthPageSkeleton message="Loading setup..." />}>
+      <MFASetupContent />
+    </Suspense>
   );
 };
 
